@@ -343,8 +343,7 @@ The second line is creating a CredentialRetriever object.  While it should not m
 
 Once you have this object, you can now retrieve either information about any entry in the section `secrets2get`. using the label of the entry you want to retrieve.
 
-**`secretObj = credRetrieval.getSecretsByLabel('labelFromSecretsFile')
- `**
+**`secretObj = credRetrieval.getSecretsByLabel('labelFromSecretsFile') `**
 
 to get individual parameters you can use one of the following methods:
 
@@ -377,7 +376,7 @@ Getting a specific value from the misc params:
 
 Goes into the misc params section of the json struct and returns the value that is associated with the label 'label' in this case.
 
-And finally for multiaccounts, use the multiParams object created above:
+And finally for multi-accounts, use the multiParams object created above:
 
 **`password = multiParams.getAccountPassword('multiLabel', 'WHSE_SOMETHING')`**
 
@@ -385,9 +384,10 @@ Goes into the json struct, the multiaccount section can be made up of any number
 
 ## Project directory setup
 
-While you can set up your scripts projects any way you want, if we stick with a standard it should make it easier for other people to use your scripts, contribute to your projects, and generally understand how they work.
+While you can set up your scripts projects any way you want, if we stick with a standard it should make it easier for other people to use your scripts, contribute to your projects, and generally understand how they work.  The secrets module expects the secrets to be a directory called *secrets* and inside that directory there to be 
+a secrets.json file.  You can override these defaults also by specifying the location of the secrets file when you create your secret object, example:
 
-Standard Python directory structure is defined [here](http://test.apps.bcgov/guide/intdocs/jenkins-python-scripts-configuration/#Structuring_your_Code)
+'secrt = Secrets.GetSecrets.CredentialRetriever("path/to/secrets.json")'
 
 ## Dealing with Dependencies
 
@@ -400,11 +400,12 @@ To install requirements you can either:
 *   set up a virtualenv and install them into your virtual env
 *   use pip with the -t option to install to this directory and then configure paths for your project, either using:
 
-        *   PYTHONPATH environment variable
+    *   PYTHONPATH environment variable
     *   Path in your development environment
     *   Use usercustomize.py files.
 
-Typically if working on non windows platforms I use virtualenv, and when on windows I use pip with -t option as is shown in the example below:
+Typically if working on non windows platforms I use virtualenv, and when on windows I use pip with -t option as is shown in the example below to 
+install dependencies to a specific directory:
 
 **`cd $PROJDIR/lib_ext
  pip install -t . -r requirements.txt`**
