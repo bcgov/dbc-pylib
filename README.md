@@ -6,5 +6,5 @@ The code here is used by multiple automation processes and is intended to make i
 I'm gradually working towards documentation of the more heavily used modules in the 'docs' folder.
 
 You should see some examples there for the:
-- FMEServer Rest API wrapper and PMP module
-- Secrets module.
+- [FMEServer Rest API wrapper and PMP module](docs/FMEServer.md)
+- [Secrets module](docs/secrets.md)
