@@ -17,6 +17,6 @@ setup(name='ArcGisUtil',
       url='https://github.com/bcgov/dbc-pylib/tree/master/ArcGisUtil',
       author='Kevin Netherton',
       author_email='kevin.netherton@gov.bc.ca',
-      license='MIT',
+      license='Apache',
       packages=['ArcGisUtil'],
       zip_safe=False)
