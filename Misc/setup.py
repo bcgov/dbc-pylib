@@ -14,7 +14,7 @@ from setuptools import setup
 setup(name='Misc',
       version='0.1',
       description='wrapper for communication with PMP rest api',
-      url='https://gogs.data.gov.bc.ca/daops/DataBCPyLib/src/packagedVersion/Misc',
+      url='https://github.com/bcgov/dbc-pylib/tree/master/Misc',
       author='Kevin Netherton',
       author_email='kevin.netherton@gov.bc.ca',
       license='MIT',

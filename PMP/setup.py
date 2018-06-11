@@ -8,7 +8,7 @@ from setuptools import setup
 setup(name='PMP',
       version='0.3',
       description='wrapper for communication with PMP rest api',
-      url='https://gogs.data.gov.bc.ca/daops/DataBCPyLib/src/packagedVersion/PMP',
+      url='https://github.com/bcgov/dbc-pylib/tree/master/PMP',
       author='Kevin Netherton',
       author_email='kevin.netherton@gov.bc.ca',
       license='MIT',

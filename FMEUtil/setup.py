@@ -37,7 +37,7 @@ from setuptools import setup
 setup(name='FMEUtil',
       version='0.2',
       description='Various utilities to help with FME workflows.  PyFMEServerV2.py is the wrapper to the rest api',
-      url='https://gogs.data.gov.bc.ca/GuyLafleur/DataBCPyLib/src/master/FMEUtil',
+      url='https://github.com/bcgov/dbc-pylib/tree/master/FMEUtil',
       author='Kevin Netherton',
       author_email='kevin.netherton@gov.bc.ca',
       license='MIT',

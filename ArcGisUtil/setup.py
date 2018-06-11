@@ -14,7 +14,7 @@ from setuptools import setup
 setup(name='ArcGisUtil',
       version='0.1',
       description='Library to with functions to automate aspects of ArcGIS',
-      url='https://gogs.data.gov.bc.ca/daops/DataBCPyLib/src/packagedVersion/ArcGisUtil',
+      url='https://github.com/bcgov/dbc-pylib/tree/master/ArcGisUtil',
       author='Kevin Netherton',
       author_email='kevin.netherton@gov.bc.ca',
       license='MIT',
