@@ -118,7 +118,7 @@ This same method can be used to retrieve a variety of parameter types. In this e
 
 #### SECRETS FILE: 
     
-```
+``` 
    {"pmphost":"pmp host here",
     "pmprestapidir":"path to rest api here",
     "__comment__":"this pmp token is for development",
@@ -143,7 +143,7 @@ This same method can be used to retrieve a variety of parameter types. In this e
 
 #### PYTHON CODE: 
 
-```
+``` python
 import Secrets.GetSecrets 
 # these are the labels associated with secrets that
 # we are trying to retrieve from secrets file
