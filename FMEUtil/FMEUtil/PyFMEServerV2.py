@@ -754,6 +754,7 @@ class Job(object):
     '''
 
     def __init__(self, jobs, jobId, detail='low'):
+        self.logger = logging.getLogger(__name__)
         self.jobId = jobId
         # http://fmeserver/fmerest/v2/transformations/jobs/id/9021?accept=json&detail=high
         self.url = urlparse.urljoin(jobs.url, 'id')
