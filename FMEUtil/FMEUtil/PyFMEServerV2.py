@@ -592,6 +592,7 @@ class Jobs(object):
     '''
 
     def __init__(self, baseObj):
+        self.logger = logging.getLogger(__name__)
         self.baseObj = baseObj
         # job types: # 'completed', 'running' or 'queued'.
         # http://fmeserver/fmerest/v2/transformations/jobs/completed?detail=low&limit=-1&offset=-1
@@ -706,7 +707,7 @@ class Jobs(object):
         url = urlparse.urljoin(url, repoName)
         url = self.baseObj.fixUrlPath(url)
         url = urlparse.urljoin(url, jobName)
-        print 'url', url
+        self.logger.debug("url: %s", url)
         paramsStruct = []
         body = {}
         if params:
@@ -719,9 +720,10 @@ class Jobs(object):
         body['subsection'] = "REST_SERVICE"
         body['TMDirectives'] = {'priority': 100}
 
-        print 'body:-----'
+        #print 'body:-----'
         pp = pprint.PrettyPrinter(indent=4)
-        pp.pprint(body)
+        #pp.pprint(body)
+        self.logger.debug(pp.pformat(body))
 
         body = json.dumps(body)
         header = {'Content-Type': 'application/json',
