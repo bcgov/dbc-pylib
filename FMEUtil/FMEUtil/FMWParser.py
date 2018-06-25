@@ -1099,6 +1099,7 @@ class FMEDataSet(object):
         self.datasetStruct = datasetStruct
         self.fcDataSetRelationshipField = 'KEYWORD'
         self.datasetNameField = 'DATASET'
+        self.datasetFormatField = 'FORMAT'
 
     def getJson(self):
         dataSetList = []
@@ -1114,6 +1115,14 @@ class FMEDataSet(object):
 
     def getDataSetName(self):
         return self.datasetStruct[self.datasetNameField]
+    
+    def getDataSetFormat(self):
+        '''
+        :return: The dataset format / type
+        '''
+        #pp = pprint.PrettyPrinter(indent=4)
+        #pp.pprint(self.datasetStruct)
+        return self.datasetStruct[self.datasetFormatField]
 
 
 if __name__ == '__main__':
