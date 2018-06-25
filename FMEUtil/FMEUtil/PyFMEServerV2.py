@@ -754,6 +754,7 @@ class Job(object):
     '''
 
     def __init__(self, jobs, jobId, detail='low'):
+        self.logger = logging.getLogger(__name__)
         self.jobId = jobId
         # http://fmeserver/fmerest/v2/transformations/jobs/id/9021?accept=json&detail=high
         self.url = urlparse.urljoin(jobs.url, 'id')
@@ -782,7 +783,23 @@ class Job(object):
         return log
 
     def getJobStatus(self):
-        return self.response['result']['status']
+        '''
+        :returns: the job status
+        '''
+        returnValue = None
+        if 'result' in self.response:
+            if 'status' in self.response['result']:
+                returnValue = self.response['result']['status']
+        elif 'status' in self.response:
+            returnValue = self.response['status']
+        else:
+            msg = "cannot find a status in the response object!, searched for " + \
+                  "self.response['result']['status'] and self.response['status'] " + \
+                  'neither of which exist.  Full reponse object is: {0}'
+            msg = msg.format(self.response)
+            self.logger.error(msg)
+            raise ValueError, msg
+        return returnValue
 
 
 class Repository(object):

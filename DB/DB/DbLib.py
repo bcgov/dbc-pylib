@@ -114,6 +114,7 @@ class DbMethods(object):
 
             # dsn = cx_Oracle.makedsn(server, port, service_name=instance)
             dsn = cx_Oracle.makedsn(server, port, service_name=instance)  # pylint: disable=no-member
+            self.logger.info("successfully connected to host/sn %s/%s", server, instance)
         except Exception, e:  # pylint: disable=broad-except
             msg = u'Got an error trying to create the dsn using the ' + \
                   u'service_name keyword.  Trying with no keywords'
