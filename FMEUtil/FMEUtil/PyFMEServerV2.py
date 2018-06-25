@@ -783,6 +783,9 @@ class Job(object):
         return log
 
     def getJobStatus(self):
+        '''
+        :returns: the job status
+        '''
         returnValue = None
         if 'result' in self.response:
             if 'status' in self.response['result']:
