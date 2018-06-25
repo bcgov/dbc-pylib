@@ -782,7 +782,20 @@ class Job(object):
         return log
 
     def getJobStatus(self):
-        return self.response['result']['status']
+        returnValue = None
+        if 'result' in self.response:
+            if 'status' in self.response['result']:
+                returnValue = self.response['result']['status']
+        elif 'status' in self.response:
+            returnValue = self.response['status']
+        else:
+            msg = "cannot find a status in the response object!, searched for " + \
+                  "self.response['result']['status'] and self.response['status'] " + \
+                  'neither of which exist.  Full reponse object is: {0}'
+            msg = msg.format(self.response)
+            self.logger.error(msg)
+            raise ValueError, msg
+        return returnValue
 
 
 class Repository(object):
