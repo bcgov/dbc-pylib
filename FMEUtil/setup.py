@@ -43,6 +43,6 @@ setup(name='FMEUtil',
       license='MIT',
       packages=['FMEUtil'],
       install_requires=[
-          'requests',
+          'requests', 'lxml'
       ],
       zip_safe=False)
