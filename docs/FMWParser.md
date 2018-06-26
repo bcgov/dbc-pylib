@@ -42,7 +42,8 @@ To retrieve a workspace name you need to:
 
 ``` python
 import FMEUtil.FMWParser
-parser = FMEUtil.FMWParser.FMWParser(self.fmwFile)
+fmwFile = r'C:\somePath\to\my\fmws\test.fmw'
+parser = FMEUtil.FMWParser.FMWParser(fmwFile)
 wrkspcObj = parser.getFMEWorkspace()
 wrkspaceName = wrkspcObj.getWorkspaceName()
 print 'wrkspaceName', wrkspaceName
