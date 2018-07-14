@@ -437,7 +437,7 @@ class Schedule(object):
         # catEncode = urllib.quote(category)
         # print 'catEncode:', catEncode
         # scheduleNameEncode = urllib.quote(scheduleName)
-        print 'schedules url', self.schedules.url
+        #print 'schedules url', self.schedules.url
         url = self.schedules.baseObj.fixUrlPath(self.schedules.url)
 
         # url = urlparse.urljoin(url, catEncode)
@@ -446,10 +446,10 @@ class Schedule(object):
         # url = urlparse.urljoin(url, scheduleNameEncode)
         url = urlparse.urljoin(url, scheduleName)
         url = self.schedules.baseObj.fixUrlPath(url)
-        print 'schedule url now:', url
+        #print 'schedule url now:', url
         header = {'Accept': 'application/json'}
         response = self.baseObj.deleteResponse(url, header=header, acceptCodes=[204])
-        print 'response', response
+        #print 'response', response
         return response
 
     def disable(self, category, scheduleName):
@@ -626,13 +626,13 @@ class Jobs(object):
             params['offset'] = 0
         if offset:
             params['offset'] = str(offset)
-        print 'params:', params
+        #print 'params:', params
         response = self.baseObj.getResponse(url, detail=detail, additionalParams=params)
         cnt = 0
         for job in response:
             jobs[job['id']] = job
             cnt += 1
-        print 'cnt:', cnt
+        #print 'cnt:', cnt
         if cnt == 0:
             self.jobNullPagesRead += 1
         return jobs
@@ -921,7 +921,7 @@ class Repository(object):
         itemUrl = urlparse.urljoin(itemUrl, 'items')
         itemUrl = self.baseObj.fixUrlPath(itemUrl)
         itemUrl = urlparse.urljoin(itemUrl, justFMW)
-        print 'itemUrl', itemUrl
+        #print 'itemUrl', itemUrl
         headers = {'Content-Disposition': 'attachment; filename="' + str(fmwPath) + '"',
                    'Content-Type': 'application/octet-stream',
                    'Accept': 'application/json'}
@@ -975,7 +975,7 @@ class Repository(object):
             # Accept: application/json
             dataPayload = {'description': descr,
                            'name':repName}
-            print 'url:', self.url
+            #print 'url:', self.url
             response = self.baseObj.postResponseFormData(self.url, detail='high', data=dataPayload)
         return response
 
@@ -1069,7 +1069,7 @@ class Workspaces(object):
         url = urlparse.urljoin(url, 'datasets')
         url = self.baseObj.fixUrlPath(url)
         url = urlparse.urljoin(url, srcOrDest)
-        print 'url:', url
+        #print 'url:', url
         header = {'Accept': r'application/json'}
         response = self.baseObj.getResponse(url, detail='high', returnType='json', header=header)
         return response
@@ -1190,8 +1190,8 @@ class Workspaces(object):
         '''
         url = self.baseObj.fixUrlPath(self.url)
         url = urlparse.urljoin(url, wrkspcName)
-        print 'url', url
-        print 'wrkspcName', wrkspcName
+        #print 'url', url
+        #print 'wrkspcName', wrkspcName
         header = {'Accept': 'application/json'}
         resp = self.baseObj.deleteResponse(url, header=header, acceptCodes=[204])
         return resp
@@ -1231,7 +1231,7 @@ class Resources(object):
         #   FME_SHAREDRESOURCE_LOG
         #   FME_SHAREDRESOURCE_TEMP
         itemUrl = self.__calcURL(dirType, dirList)
-        print 'url is:', itemUrl
+        #print 'url is:', itemUrl
         addparams = {'depth': 10}
         dontErrorStatusCodes = [404]
         response = self.baseObj.getResponse(itemUrl, additionalParams=addparams,
@@ -1339,14 +1339,14 @@ class Resources(object):
         baseName = os.path.basename(file2Upload)
         # baseName = urllib.quote(baseName)
         baseName = baseName.decode('utf8')
-        print 'baseName', baseName
+        #print 'baseName', baseName
         headers = {'Content-Disposition': 'attachment; filename="' + str(baseName) + '"',
                    'Content-Type': 'application/octet-stream',
                    'Accept': 'application/json'}
         # Content-Disposition: attachment; filename="uploadtest.txt"
         # Accept: application/json
         dataPayload = open(file2Upload, 'rb')
-        print 'itemUrl', itemUrl
+        #print 'itemUrl', itemUrl
         response = self.baseObj.postResponseFormData(itemUrl, header=headers, data=dataPayload,
                                                      params=params)
         dataPayload.close()
@@ -1359,10 +1359,10 @@ class Resources(object):
         '''
         # /resources/connections/< resource >/filesys/< path >
         itemUrl = self.__calcURL(dirType, dirList)
-        print 'url:', itemUrl
+        #print 'url:', itemUrl
         response = self.baseObj.getResponse(itemUrl)
         pp = pprint.PrettyPrinter(indent=4)
-        pp.pprint(response)
+        #pp.pprint(response)
         return response
 
 
