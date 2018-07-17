@@ -3,14 +3,16 @@ Created on Jul 13, 2018
 
 @author: kjnether
 '''
-import logging
-import FMEUtil.PyFMEServerV2
-import datetime
-import os.path
-import json
-import deepdiff
 import copy
+import datetime
+import json
+import logging
+import os.path
 import pprint
+
+import FMEUtil.PyFMEServerV2
+import deepdiff
+
 
 class Schedules(object):
 
@@ -37,7 +39,8 @@ class Schedules(object):
     :type flds2Ignore:  list
     '''
 
-    def __init__(self, fmeServUrl, fmeServToken, cacheLabel, cacheDir, refreshCache=False, ignorePP=False):
+    def __init__(self, fmeServUrl, fmeServToken, cacheLabel, cacheDir,
+                 refreshCache=False, ignorePP=False):
         '''
         :param fmeServUrl: url to fme server, don't include paths
         :param fmeServToken: token to fme server
@@ -68,7 +71,7 @@ class Schedules(object):
         # when doing comparisons between the two structures
         self.flds2Ignore = ['begin', 'enabled']
         # this switch can be set using the method setIgnoredFields()
-        # when set to true published parameters are not considered in the 
+        # when set to true published parameters are not considered in the
         # comparison of the schedules.
         self.ignorePP = ignorePP
         # this data struct will get populated with everything in self.schedStruct
@@ -90,6 +93,13 @@ class Schedules(object):
         '''
         return self.fme
 
+    def getScheduleData(self):
+        '''
+        :return: the data structure that describes the schedules in this
+                 object.
+        '''
+        return self.schedStruct
+
     def setIgnoredFields(self, flds, ignorePublishedParameters=True):
         '''
         When doing a comparison between schedule objects you can set a
@@ -102,7 +112,7 @@ class Schedules(object):
         self.ignorePP = ignorePublishedParameters
         self.flds2Ignore = flds
         schedStructCleaned = []
-        #schedIterator = self.schedStruct[0:]
+        # schedIterator = self.schedStruct[0:]
         schedIterator = copy.deepcopy(self.schedStruct)
         for schedRef in schedIterator:
             sched = schedRef.copy()
@@ -112,12 +122,16 @@ class Schedules(object):
                     del sched[fld2Del]
             if self.ignorePP:
                 # getting rid of published parameters too!
-                #self.pp.pprint(sched)
+                # self.pp.pprint(sched)
                 del sched['request']['publishedParameters']
             schedStructCleaned.append(sched)
         self.schedStructComparison = schedStructCleaned
 
     def isEnabled(self, scheduleName):
+        '''
+        :return: indicates if the schedule is enabled or not
+        :rtype: boolean
+        '''
         schedStruct = self.getScheduleByName(scheduleName)
         return schedStruct['enabled']
 
@@ -140,6 +154,7 @@ class Schedules(object):
             self.logger.info("retrieving the schedules from fme server, this" + \
                              "may take a while")
             schedStruct = self.scheds.getSchedules()
+            self.logger.debug("schedStruct: {0}".format(schedStruct))
             with open(self.cacheFile, 'w') as outfile:
                 msg = "dumping the schedules to the cache file {0}"
                 self.logger.info(msg.format(cacheFile))
@@ -164,7 +179,7 @@ class Schedules(object):
                 break
         return retVal
 
-    def __contains__(self, sched):
+    def __contains__(self, sched):  # pylint: disable=invalid-name
         '''
         :param sched: returns true or false based on whether the sched
                       object exists in this collection of schedules
@@ -177,7 +192,7 @@ class Schedules(object):
         for fld in sched.keys():
             if fld not in self.flds2Ignore:
                 schedCleaned[fld] = copy.deepcopy(sched[fld])
-        # if the ignore published parameters flag is set then 
+        # if the ignore published parameters flag is set then
         # don't look at them if they are defined.
         if self.ignorePP:
             if 'request' in schedCleaned:
@@ -190,10 +205,10 @@ class Schedules(object):
             for curSched in self.schedStructComparison:
                 if curSched['name'] == schedCleaned['name']:
                     diffs = deepdiff.DeepDiff(schedCleaned, curSched)
-                    self.logger.info("differences for {1}: {0}".format(diffs,                                                                        curSched['name']))
+                    self.logger.info("differences for {1}: {0}".format(diffs, curSched['name']))
         return retVal
 
-    def __sub__(self, schedules):
+    def __sub__(self, schedules):  # pylint: disable=invalid-name
         '''
         identifies schedules that are in self, but not in supplied
         schedules
@@ -223,6 +238,11 @@ class Parameters(object):
         self.scheduleStruct = self.schedule.getScheduleByName(scheduleName)
 
     def getPublishedParameters(self):
+        '''
+        :return:  the published parameters associated with the specified schedule.
+        These are retrieved not from the schedule but from the FMW that the
+        schedule calls.
+        '''
         workspcName = self.scheduleStruct['workspace']
         repoName = self.scheduleStruct['repository']
 
@@ -232,10 +252,10 @@ class Parameters(object):
         pubParams = wrkspcs.getPublishedParams4Schedule(workspcName)
         return pubParams
 
-    def fixSchedulePublishedParameters(self, setEnabled=True):
+    def fixSchedulePublishedParameters(self):
         '''
-        Returns a schedule json struct that can be sent to FME Server to define
-        a new schedule.
+        :return: a schedule json struct that can be sent to FME Server to define
+                 a new schedule.
         '''
         # published parameters retrieved from the workspace on fme server
         pubParams = self.getPublishedParameters()
@@ -246,7 +266,7 @@ class Parameters(object):
         pp.pprint(self.scheduleStruct)
         schedulePubParams = self.scheduleStruct['request']['publishedParameters']
 
-        fixedSchedule = self.scheduleStruct['request']['publishedParameters'][0:]
+        # fixedSchedule = self.scheduleStruct['request']['publishedParameters'][0:]
 
         # Iterating through the published parameters associated with the
         # workspace and overriding values with values that were retrieved
@@ -270,22 +290,3 @@ class Parameters(object):
         # raise
         self.scheduleStruct['request']['publishedParameters'] = params4Schedule
         return self.scheduleStruct
-
-    def setDisabled(self, schedule):
-        '''
-        :param schedule: the schedule json object
-        :return: the same schedule as was recieved but with the enabled
-                 parameter set to false.
-        '''
-
-        pass
-
-    def setDestDbEnvKey(self, schedule, key):
-        '''
-        searches the schedule for the DEST_DB_ENV_KEY if one is found
-        then the parameter is set to the value defined in 'key'
-
-        :param key: the value to assign to DEST_DB_ENV_KEY if it exists.
-        '''
-        pass
-

@@ -34,6 +34,8 @@ import urlparse
 
 import requests
 
+# pylint: disable=logging-format-interpolation
+
 
 class FMERestBase(object):
     '''
@@ -314,6 +316,7 @@ class Logs(object):  # pylint: disable=too-few-public-methods
     '''
 
     def __init__(self, baseObj):
+        self.logger = logging.getLogger(__name__)
         self.baseObj = baseObj
         # example of v1 url to a log
         # V2 logs are moved under the jobs.
@@ -323,7 +326,7 @@ class Logs(object):  # pylint: disable=too-few-public-methods
         self.url = self.baseObj.fixUrlPath(self.url)
         self.url = urlparse.urljoin(self.url, 'jobs', True)
         self.url = self.baseObj.fixUrlPath(self.url)
-
+        self.logger.debug("url is: {0}".format(self.url))
         # self.url = urlparse.urljoin(self.url, 'complete', True)
         # self.url = self.baseObj.fixUrlPath(self.url)
 
@@ -332,6 +335,7 @@ class Logs(object):  # pylint: disable=too-few-public-methods
         Returns a Log object for a given log id. Job id?
         '''
         log = Log(self, logId)
+        self.logger.debug("getting the log: {0}".format(logId))
         return log
 
 
@@ -341,8 +345,10 @@ class Schedules(object):
     '''
 
     def __init__(self, baseObj):
+        self.logger = logging.getLogger(__name__)
         self.baseObj = baseObj
         self.url = urlparse.urljoin(self.baseObj.restUrl, self.baseObj.scheduleDir, True)
+        self.logger.debug("base url: {0}".format(self.url))
 
     def getSchedule(self):
         '''
@@ -367,6 +373,7 @@ class Schedules(object):
         '''
         schedsList = self.getSchedules(detail='low')
         retVal = False
+        self.logger.debug("schedule list: {0}".format(schedsList))
         # print 'schedList:', schedsList
         for sched in schedsList:
             # self.logger.debug("current sched in iteration %s", sched)
@@ -1225,6 +1232,8 @@ class Workspaces(object):
         '''
         url = self.baseObj.fixUrlPath(self.url)
         url = urlparse.urljoin(url, wrkspcName)
+        self.logger.debug("url: {0}".format(url))
+        self.logger.info("attempting to delete: {0}".format(wrkspcName))
         # print 'url', url
         # print 'wrkspcName', wrkspcName
         header = {'Accept': 'application/json'}
@@ -1396,7 +1405,7 @@ class Resources(object):
         itemUrl = self.__calcURL(dirType, dirList)
         # print 'url:', itemUrl
         response = self.baseObj.getResponse(itemUrl)
-        pp = pprint.PrettyPrinter(indent=4)
+        # pp = pprint.PrettyPrinter(indent=4)
         # pp.pprint(response)
         return response
 
