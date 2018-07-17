@@ -151,13 +151,18 @@ class FMWParser():
         featClsOnlyRegex = re.compile(FMWParserConstants.PUBPARAM_FEATURE_REGEX, re.I)
 
         params = self.getPublishedParams()
+        self.logger.debug("params: {0}".format(params))
         for curEntry in InParamSet.keys():
+            self.logger.debug("curEntry: {0}".format(curEntry))
             curValue = InParamSet[curEntry]
 
             # setting up the regex searches
             srchParamOnly = pubParamOnlyRegex.search(curValue)
             srchSchemaOnly = schemaOnlyRegex.search(curValue)
             srchFeatClsOnly = featClsOnlyRegex.search(curValue)
+
+            self.logger.debug('curEntry: {0}'.format(curEntry))
+            self.logger.debug('curValue: {0}'.format(curValue))
 
             # logic applied to the various searches
             if srchParamOnly:
@@ -189,6 +194,12 @@ class FMWParser():
         :param params: The published parameters which are a list
                        of dictionaries with the keys DEFAULT_VALUE and
                        TYPE
+                       
+        DEST_DATASET_FGDB_1
+        {'DEST_GEODATABASE': {'DEFAULT_VALUE': '\\\\data.bcgov\\wwwroot\\datasets\\4cf233c2-f020-4f7a-9b87-1923252fbc24\\ParcelMapBCExtract.zip\\ParcelMapBCExtract.gdb', 'TYPE': 'DEST_DATASET_FGDB_1 Destination Geodatabase:'}, 'DEST_DB_ENV_KEY': {'DEFAULT_VALUE': 'OTHR', 'TYPE': 'DLV%TST%PRD%DEV%OTHR Destination Database Keyword (DLV|TST|PRD|OTHR):'}, 'SRC_DATASET_FGDB_1': {'DEFAULT_VALUE': '\\\\data.bcgov\\data_staging\\BCGW\\land_ownership_and_status_pmbc_secure\\ParcelMapBCExtract.gdb', 'TYPE': 'Source Geodatabase:'}, 'LOG_FILE': {'DEFAULT_VALUE': 'import<space>DataBCFMWTemplate<lf>params<space>=<space>DataBCFMWTemplate.CalcParams<openparen>FME_MacroValues<closeparen><lf>return<space>params.getFMWLogFileRelativePath<openparen><closeparen><lf>', 'TYPE': 'Python Script:'}, 'SRC_FEATURE_1': {'DEFAULT_VALUE': 'Parcel_Polygon', 'TYPE': 'Source feature class:'}, 'DEST_FEATURE_1': {'DEFAULT_VALUE': 'Parcel_Polygon', 'TYPE': 'Destination feature class:'}}
+       {'DEST_GEODATABASE': {'DEFAULT_VALUE': '\\\\data.bcgov\\wwwroot\\datasets\\4cf233c2-f020-4f7a-9b87-1923252fbc24\\ParcelMapBCExtract.zip\\ParcelMapBCExtract.gdb', 'TYPE': 'DEST_DATASET_FGDB_1 Destination Geodatabase:'}, 
+        'DEST_DB_ENV_KEY': {'DEFAULT_VALUE': 'OTHR', 'TYPE': 'DLV%TST%PRD%DEV%OTHR Destination Database Keyword (DLV|TST|PRD|OTHR):'}, 
+        'SRC_DATASET_FGDB_1': {'DEFAULT_VALUE': '\\\\data.bcgov\\data_staging\\BCGW\\land_ownership_and_status_pmbc_secure\\ParcelMapBCExtract.gdb', 'TYPE': 'Source Geodatabase:'}, 'LOG_FILE': {'DEFAULT_VALUE': 'import<space>DataBCFMWTemplate<lf>params<space>=<space>DataBCFMWTemplate.CalcParams<openparen>FME_MacroValues<closeparen><lf>return<space>params.getFMWLogFileRelativePath<openparen><closeparen><lf>', 'TYPE': 'Python Script:'}, 'SRC_FEATURE_1': {'DEFAULT_VALUE': 'Parcel_Polygon', 'TYPE': 'Source feature class:'}, 'DEST_FEATURE_1': {'DEFAULT_VALUE': 'Parcel_Polygon', 'TYPE': 'Destination feature class:'}}
         '''
         paramValue = None
         pubParmName = regex.group(1)
@@ -197,10 +208,27 @@ class FMWParser():
         pubParmName = util.stripVariableNotations(pubParmName)
         # Now sub in the pub param from the pubparam list
         # don't sub in if the pub param is scripted
-        if params[pubParmName]['TYPE'] <> 'Python Script:':
+        self.logger.debug("pub param name: {0}".format(pubParmName))
+        
+        if pubParmName in params and params[pubParmName]['TYPE'] <> 'Python Script:':
             paramValue = params[pubParmName]['DEFAULT_VALUE']
+        elif pubParmName not in params:
+            # when fme parameters are linked to datasets they will take on this structure:
+            # {'DEST_GEODATABASE': {'DEFAULT_VALUE': '\\\\data.bcgov\\wwwroot\\datasets\\4cf233c2-f020-4f7a-9b87-1923252fbc24\\ParcelMapBCExtract.zip\\ParcelMapBCExtract.gdb', 'TYPE': 'DEST_DATASET_FGDB_1 Destination Geodatabase:'}, 
+            # in this case we need to fish this value out of the 'type'
+            for iterParamName in params.keys():
+                if pubParmName in params[iterParamName]['TYPE']:
+                    paramValue = params[iterParamName]['DEFAULT_VALUE']
+                    break
+            if paramValue is None:
+                msg = 'unable to extract the parameter value for the parameter ' + \
+                      'name {0}.  variable params: {1}'
+                msg = msg.format(pubParmName, params)
+                raise ValueError, msg
         else:
             # just leave it as is by returning the parameter name
+            # this is what the normal data would look like:
+            # 'DEST_DB_ENV_KEY': {'DEFAULT_VALUE': 'OTHR', 'TYPE': 'DLV%TST%PRD%DEV%OTHR Destination Database Keyword (DLV|TST|PRD|OTHR):'}
             paramValue = pubParmName
         return paramValue
 
@@ -760,6 +788,18 @@ class FMEWorkspace(object):
         '''
         return self.publishedParams
 
+    def hasFieldMap(self):
+        '''
+        fieldmaps can be defined in two different ways, one way is to 
+        use an "AttributeRenamer" transformer.  At DataBC this is the 
+        "preferred" way of doing this.  The other way is to drag
+        connecting lines from either the reader or the last transformer
+        to the writers feature class.
+        
+        This method should be able detect both of these appoaches.
+        
+        '''
+
 
 class FMETransformers(object):
     '''
@@ -1125,33 +1165,38 @@ class FMEDataSet(object):
         return self.datasetStruct[self.datasetFormatField]
 
 
-if __name__ == '__main__':
-    logger = logging.getLogger(__name__)
-    logger.addHandler(logging.StreamHandler())
-    logger.setLevel(logging.DEBUG)
+# if __name__ == '__main__':
+#     logger = logging.getLogger(__name__)
+#     logger.addHandler(logging.StreamHandler())
+#     logger.setLevel(logging.DEBUG)
+# 
+#     pp = pprint.PrettyPrinter(indent=4)
+# 
+#     inFMW = 'testFME.fmw'
+#     parsr = FMWParser(inFMW)
+#     parsr.separateFMWComponents()
+#     # parsr.readEverything()
+# 
+#     # trans = parsr.getTransformers()
+# 
+#     # dest = parsr.getDestDataSets()
+#     # pp.pprint(dest)
+# 
+#     dest = parsr.getFeatureTypes()
+#     pp.pprint(dest)
+#     # dest = parsr.addPublishedParameters(dest)
+#     # pp.pprint(dest)
+# 
+#     # pp  = pprint.PrettyPrinter(indent=4)
+#     # pp.pprint(dest[0])
+#     # print 'dest', dest[0].attrib
+#     # parsr.getSourceDataSets()
+#     # parsr.parseXML()
+#     # parsr.getPublishedParams()
 
-    pp = pprint.PrettyPrinter(indent=4)
-
-    inFMW = r'Z:\Workspace\kjnether\proj\DDF\fmw\abms_counties_sp_staging_gdb_bcgw.fmw'
-
-    parsr = FMWParser(inFMW)
-    parsr.separateFMWComponents()
-    # parsr.readEverything()
-
-    # trans = parsr.getTransformers()
-
-    # dest = parsr.getDestDataSets()
-    # pp.pprint(dest)
-
-    dest = parsr.getFeatureTypes()
-    pp.pprint(dest)
-    # dest = parsr.addPublishedParameters(dest)
-    # pp.pprint(dest)
-
-    # pp  = pprint.PrettyPrinter(indent=4)
-    # pp.pprint(dest[0])
-    # print 'dest', dest[0].attrib
-    # parsr.getSourceDataSets()
-    # parsr.parseXML()
-    # parsr.getPublishedParams()
-
+'''
+ currently trying to figure out how to extract fieldmaps.
+ FACTORY_DEF * RoutingFactory FACTORY_NAME "Destination Feature Type Routing Correlator"
+        
+        
+'''
