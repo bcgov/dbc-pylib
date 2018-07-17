@@ -9,7 +9,7 @@ import datetime
 import os.path
 import json
 import deepdiff
-
+import copy
 import pprint
 
 class Schedules(object):
@@ -37,7 +37,7 @@ class Schedules(object):
     :type flds2Ignore:  list
     '''
 
-    def __init__(self, fmeServUrl, fmeServToken, cacheLabel, cacheDir, refreshCache=False):
+    def __init__(self, fmeServUrl, fmeServToken, cacheLabel, cacheDir, refreshCache=False, ignorePP=False):
         '''
         :param fmeServUrl: url to fme server, don't include paths
         :param fmeServToken: token to fme server
@@ -67,6 +67,10 @@ class Schedules(object):
         # These are fields in the schedules that should be ignored
         # when doing comparisons between the two structures
         self.flds2Ignore = ['begin', 'enabled']
+        # this switch can be set using the method setIgnoredFields()
+        # when set to true published parameters are not considered in the 
+        # comparison of the schedules.
+        self.ignorePP = ignorePP
         # this data struct will get populated with everything in self.schedStruct
         # except the fields described in flds2Ignore
         self.schedStructComparison = []
@@ -86,7 +90,7 @@ class Schedules(object):
         '''
         return self.fme
 
-    def setIgnoredFields(self, flds):
+    def setIgnoredFields(self, flds, ignorePublishedParameters=True):
         '''
         When doing a comparison between schedule objects you can set a
         list of fields to ignore when doing the comparison.  There are
@@ -95,17 +99,21 @@ class Schedules(object):
         :param flds: a list of fields that should be ignored when comparing
                      schedule objects
         '''
+        self.ignorePP = ignorePublishedParameters
         self.flds2Ignore = flds
         schedStructCleaned = []
-        for schedRef in self.schedStruct:
+        #schedIterator = self.schedStruct[0:]
+        schedIterator = copy.deepcopy(self.schedStruct)
+        for schedRef in schedIterator:
             sched = schedRef.copy()
             for fld2Del in self.flds2Ignore:
                 if fld2Del in sched:
                     # self.logger.debug("cleaning entry for: {0}".format(fld2Del))
                     del sched[fld2Del]
-            # getting rid of published parameters too!
-            #self.pp.pprint(sched)
-            del sched['request']['publishedParameters']
+            if self.ignorePP:
+                # getting rid of published parameters too!
+                #self.pp.pprint(sched)
+                del sched['request']['publishedParameters']
             schedStructCleaned.append(sched)
         self.schedStructComparison = schedStructCleaned
 
@@ -138,7 +146,7 @@ class Schedules(object):
                 json.dump(schedStruct, outfile)
 
         self.schedStruct = schedStruct
-        self.setIgnoredFields(self.flds2Ignore)
+        self.setIgnoredFields(self.flds2Ignore, self.ignorePP)
         # self.logger.debug("schedStruct: {0}".format(self.schedStruct))
 
     def getScheduleByName(self, scheduleName):
@@ -168,10 +176,13 @@ class Schedules(object):
         schedCleaned = {}
         for fld in sched.keys():
             if fld not in self.flds2Ignore:
-                schedCleaned[fld] = sched[fld]
-        if 'request' in sched:
-            if 'publishedParameters' in sched:
-                del sched['request']['publishedParameters']
+                schedCleaned[fld] = copy.deepcopy(sched[fld])
+        # if the ignore published parameters flag is set then 
+        # don't look at them if they are defined.
+        if self.ignorePP:
+            if 'request' in schedCleaned:
+                if 'publishedParameters' in schedCleaned:
+                    del schedCleaned['request']['publishedParameters']
 
         if schedCleaned in self.schedStructComparison:
             retVal = True
@@ -179,9 +190,7 @@ class Schedules(object):
             for curSched in self.schedStructComparison:
                 if curSched['name'] == schedCleaned['name']:
                     diffs = deepdiff.DeepDiff(schedCleaned, curSched)
-                    self.logger.info("differences for {1}: {0}".format(diffs, 
-                                                                       curSched['name']))
-                    #self.pp.pprint(diffs)
+                    self.logger.info("differences for {1}: {0}".format(diffs,                                                                        curSched['name']))
         return retVal
 
     def __sub__(self, schedules):
@@ -233,6 +242,8 @@ class Parameters(object):
         # published parameters associated with the current schedule.
         # includes scripted parameters, which can not be used when redefining
         # a schedule.
+        pp = pprint.PrettyPrinter(indent=4)
+        pp.pprint(self.scheduleStruct)
         schedulePubParams = self.scheduleStruct['request']['publishedParameters']
 
         fixedSchedule = self.scheduleStruct['request']['publishedParameters'][0:]
