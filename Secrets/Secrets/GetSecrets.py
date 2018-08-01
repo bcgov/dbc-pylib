@@ -561,7 +561,7 @@ class AccountParameters(object):
         self.getSecretDetails()
         pmpConst = self.pmp.const
         for customFld in self.secretDetails[pmpConst.resourcekeys_operation][pmpConst.resourcekeys_Details][pmpConst.resourceKeys_customFields]:
-            print 'customFld', customFld
+            #print 'customFld', customFld
             if customFld[pmpConst.resourceKeys_customFieldLabel] == customFieldName:
                 retVal = customFld[pmpConst.resourceKeys_customFieldValue]
                 break
