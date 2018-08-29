@@ -10,14 +10,17 @@ import logging
 import os.path
 import pprint
 import re
+import itertools
+import warnings
 
-import FMWParserConstants
 import lxml.objectify  # @UnresolvedImport
+from . import FMWParserConstants
 from . import FMWComponents
 from . import FMWUtil
 from . import FMWTCLParser
 
-class FMWParser():
+
+class FMWParser(object):
     '''
     This class is a high level class to the fmw document.  This
     class goes through the following pre-processing steps necessary to parse
@@ -77,7 +80,7 @@ class FMWParser():
         if self.fmwReader is None:
             self.fmwReader = FMWRestruct(self.FMWFile)
             self.fmwReader.read()
-    
+
     def parseXML(self):
         '''
         creates an 'objectified' object of the xml that was
@@ -91,7 +94,7 @@ class FMWParser():
             xmlList = self.fmwReader.getXML()
             xmlStr = '\n'.join(xmlList)
             self.xmlObj = lxml.objectify.fromstring(xmlStr)
-            
+
     def parseTCL(self):
         if self.tclObj is None:
             if self.fmwReader is None:
@@ -205,11 +208,11 @@ class FMWParser():
         :param params: The published parameters which are a list
                        of dictionaries with the keys DEFAULT_VALUE and
                        TYPE
-                       
+
         DEST_DATASET_FGDB_1
         {'DEST_GEODATABASE': {'DEFAULT_VALUE': '\\\\data.bcgov\\wwwroot\\datasets\\4cf233c2-f020-4f7a-9b87-1923252fbc24\\ParcelMapBCExtract.zip\\ParcelMapBCExtract.gdb', 'TYPE': 'DEST_DATASET_FGDB_1 Destination Geodatabase:'}, 'DEST_DB_ENV_KEY': {'DEFAULT_VALUE': 'OTHR', 'TYPE': 'DLV%TST%PRD%DEV%OTHR Destination Database Keyword (DLV|TST|PRD|OTHR):'}, 'SRC_DATASET_FGDB_1': {'DEFAULT_VALUE': '\\\\data.bcgov\\data_staging\\BCGW\\land_ownership_and_status_pmbc_secure\\ParcelMapBCExtract.gdb', 'TYPE': 'Source Geodatabase:'}, 'LOG_FILE': {'DEFAULT_VALUE': 'import<space>DataBCFMWTemplate<lf>params<space>=<space>DataBCFMWTemplate.CalcParams<openparen>FME_MacroValues<closeparen><lf>return<space>params.getFMWLogFileRelativePath<openparen><closeparen><lf>', 'TYPE': 'Python Script:'}, 'SRC_FEATURE_1': {'DEFAULT_VALUE': 'Parcel_Polygon', 'TYPE': 'Source feature class:'}, 'DEST_FEATURE_1': {'DEFAULT_VALUE': 'Parcel_Polygon', 'TYPE': 'Destination feature class:'}}
-       {'DEST_GEODATABASE': {'DEFAULT_VALUE': '\\\\data.bcgov\\wwwroot\\datasets\\4cf233c2-f020-4f7a-9b87-1923252fbc24\\ParcelMapBCExtract.zip\\ParcelMapBCExtract.gdb', 'TYPE': 'DEST_DATASET_FGDB_1 Destination Geodatabase:'}, 
-        'DEST_DB_ENV_KEY': {'DEFAULT_VALUE': 'OTHR', 'TYPE': 'DLV%TST%PRD%DEV%OTHR Destination Database Keyword (DLV|TST|PRD|OTHR):'}, 
+       {'DEST_GEODATABASE': {'DEFAULT_VALUE': '\\\\data.bcgov\\wwwroot\\datasets\\4cf233c2-f020-4f7a-9b87-1923252fbc24\\ParcelMapBCExtract.zip\\ParcelMapBCExtract.gdb', 'TYPE': 'DEST_DATASET_FGDB_1 Destination Geodatabase:'},
+        'DEST_DB_ENV_KEY': {'DEFAULT_VALUE': 'OTHR', 'TYPE': 'DLV%TST%PRD%DEV%OTHR Destination Database Keyword (DLV|TST|PRD|OTHR):'},
         'SRC_DATASET_FGDB_1': {'DEFAULT_VALUE': '\\\\data.bcgov\\data_staging\\BCGW\\land_ownership_and_status_pmbc_secure\\ParcelMapBCExtract.gdb', 'TYPE': 'Source Geodatabase:'}, 'LOG_FILE': {'DEFAULT_VALUE': 'import<space>DataBCFMWTemplate<lf>params<space>=<space>DataBCFMWTemplate.CalcParams<openparen>FME_MacroValues<closeparen><lf>return<space>params.getFMWLogFileRelativePath<openparen><closeparen><lf>', 'TYPE': 'Python Script:'}, 'SRC_FEATURE_1': {'DEFAULT_VALUE': 'Parcel_Polygon', 'TYPE': 'Source feature class:'}, 'DEST_FEATURE_1': {'DEFAULT_VALUE': 'Parcel_Polygon', 'TYPE': 'Destination feature class:'}}
         '''
         paramValue = None
@@ -220,12 +223,12 @@ class FMWParser():
         # Now sub in the pub param from the pubparam list
         # don't sub in if the pub param is scripted
         self.logger.debug("pub param name: {0}".format(pubParmName))
-        
+
         if pubParmName in params and params[pubParmName]['TYPE'] <> 'Python Script:':
             paramValue = params[pubParmName]['DEFAULT_VALUE']
         elif pubParmName not in params:
             # when fme parameters are linked to datasets they will take on this structure:
-            # {'DEST_GEODATABASE': {'DEFAULT_VALUE': '\\\\data.bcgov\\wwwroot\\datasets\\4cf233c2-f020-4f7a-9b87-1923252fbc24\\ParcelMapBCExtract.zip\\ParcelMapBCExtract.gdb', 'TYPE': 'DEST_DATASET_FGDB_1 Destination Geodatabase:'}, 
+            # {'DEST_GEODATABASE': {'DEFAULT_VALUE': '\\\\data.bcgov\\wwwroot\\datasets\\4cf233c2-f020-4f7a-9b87-1923252fbc24\\ParcelMapBCExtract.zip\\ParcelMapBCExtract.gdb', 'TYPE': 'DEST_DATASET_FGDB_1 Destination Geodatabase:'},
             # in this case we need to fish this value out of the 'type'
             for iterParamName in params.keys():
                 if pubParmName in params[iterParamName]['TYPE']:
@@ -306,7 +309,7 @@ class FMWParser():
              # been linked can continue with this task
             pass
 
-    def getTransformers(self):
+    def getTransformers(self, enabledOnly=True):
         '''
         extracts the portion of the document that starts with the tag:
         TRANSFORMERS,
@@ -324,15 +327,102 @@ class FMWParser():
         children = self.xmlObj.TRANSFORMERS.countchildren()
         if children:
             for transfrmr in self.xmlObj.TRANSFORMERS.TRANSFORMER:
-                if transfrmr.attrib['ENABLED'] == 'true':
-                    transDict = {}
-                    for transAtrib in transfrmr.attrib:
-                        transDict[transAtrib] = transfrmr.attrib[transAtrib]
-                        self.logger.debug("at: %s, %s ", transAtrib, transfrmr.attrib[transAtrib])
-                        # print 'at:', transAtrib, transfrmr.attrib[transAtrib]
-                    transList.append(transDict)
-                    self.logger.debug(transDict)
+                transfrmrDict = self.recurse(transfrmr)
+                proceed = True
+                if enabledOnly:
+                    if transfrmrDict['ENABLED'] <> 'true':
+                        proceed = False
+                if proceed:
+                    transList.append(transfrmrDict)
+
+#                 proceed = True
+#                 if enabledOnly:
+#                     if transfrmr.attrib['ENABLED'] <> 'true':
+#                         proceed = False
+#                 if proceed:
+#                     transDict = {}
+#                     for transAtrib in transfrmr.attrib:
+#                         transDict[transAtrib] = transfrmr.attrib[transAtrib]
+#                         self.logger.debug("at: %s, %s ", transAtrib, transfrmr.attrib[transAtrib])
+#                         print 'at:', transAtrib, transfrmr.attrib[transAtrib]
+#                     transList.append(transDict)
+#                     self.logger.debug(transDict)
+#
+#                     # children
+#                     for child in transfrmr.getchildren():
+#                         print 'chld', child.tag
+#
         return transList
+
+    def recurse(self, xmlObj, chldTag='CHILD', nameTag='ELEMENTNAME', textTag='ELEMENTTEXT'):
+        '''
+        :param xmlObj: an xml element
+        :type xmlObj: lxml.objectify element
+        :param chldTag: the name of the tag that children elements will be stored
+                        in
+        :param nameTag: the name of the tag used to store the child element tag 
+                        names.
+                        
+        using defaults takes:
+        <TRANSFORMER
+             IDENTIFIER="26"
+             TYPE="AttributeRenamer"
+             VERSION="3"
+             POSITION="727.232 -209"
+             BOUNDING_RECT="727.232 -209 -1 -1"
+             ORDER="5e+014"
+             PARMS_EDITED="true"
+             ENABLED="true"
+             LAST_PARM_EDIT="15538"
+             >
+             <OUTPUT_FEAT NAME="OUTPUT"/>
+             <XFORM_ATTR ATTR_NAME="geodb_oid" IS_USER_CREATED="false" FEAT_INDEX="0" />
+             <XFORM_ATTR ATTR_NAME="OBJECTID" IS_USER_CREATED="false" FEAT_INDEX="0" />
+        </TRANSFORMER>
+        
+        and converts to:
+        [   
+            {'BOUNDING_RECT': '727.232 -209 -1 -1',
+            'ENABLED': 'true',
+            'IDENTIFIER': '26',
+            'LAST_PARM_EDIT': '15538',
+            'ORDER': '5e+014',
+            'PARMS_EDITED': 'true',
+            'POSITION': '727.232 -209',
+            'TYPE': 'AttributeRenamer',
+            'VERSION': '3'},
+            'CHILD': [   {   'ELEMENTNAME': 'OUTPUT_FEAT', 'NAME': 'OUTPUT'},
+                         {   'ATTR_NAME': 'geodb_oid',
+                             'ELEMENTNAME': 'XFORM_ATTR',
+                             'FEAT_INDEX': '0',
+                             'IS_USER_CREATED': 'false'},
+                         {   'ATTR_NAME': 'OBJECTID',
+                             'ELEMENTNAME': 'XFORM_ATTR',
+                             'FEAT_INDEX': '0',
+                             'IS_USER_CREATED': 'false'}
+                    ]
+            }
+        ]
+    
+        '''
+        transDict = {}
+        chldrn = []
+        # get all the attributes
+        for objAtribName in xmlObj.attrib:
+            #print '{0} = {1}'.format(objAtribName, xmlObj.attrib[objAtribName])
+            transDict[objAtribName] = xmlObj.attrib[objAtribName]
+        transDict[nameTag] = xmlObj.tag
+        if xmlObj.text:
+            transDict[textTag] = xmlObj.text
+        # now get all the children
+        for chld in xmlObj.getchildren():
+            chldAsDict = self.recurse(chld)
+            if chld.tag:
+                chldAsDict[nameTag] = chld.tag
+            chldrn.append(chldAsDict)
+        if chldrn:
+            transDict[chldTag] = chldrn
+        return transDict
 
     def getPublishedParams(self):
         '''
@@ -427,10 +517,42 @@ class FMWParser():
         FMEWrkspc = self.getFMEWorkspace()
         jsonableStruct = FMEWrkspc.getTreedJSON()
         return jsonableStruct
-    
+
     def getFMWFieldmaps(self):
         self.parseTCL()
+        # gets the field maps defined by drawing lines between columns
         fldMaps = self.tclObj.getFieldMaps()
+        
+        # get the field maps defined by attributeRenamers
+        wrkSpc = self.getFMEWorkspace()
+        trans = wrkSpc.getTransformers()
+        fldMapAtrib = trans.getAttributeRenamerFieldMap()
+        
+        if fldMaps and fldMapAtrib:
+            msg = 'Field maps are defined using attributeRenamers as well as' + \
+                  'by dragging columns.  This field map cannot be extracted'
+            #raise ConflictingFieldMaps, msg
+            self.logger.warning(msg)
+            warnings.warn(msg)
+            # combining the lists, so [[[1,2],[2,3]]] and [[['a',b'],['c','d']]] 
+            # become [[[1,2],[2,3]], [['a',b'],['c','d']]]
+            newList = []
+            for fldMapList in fldMaps:
+                newList.append(fldMapList)
+            for fldMapList in fldMapAtrib:
+                newList.append(fldMapList)
+#             pp = pprint.PrettyPrinter(indent=4)
+#             print 'list 1'
+#             pp.pprint(fldMaps)
+#             print 'list 2'
+#             pp.pprint(fldMapAtrib)
+#             print 'combined'
+#             pp.pprint(newList)
+#             raise ConflictingFieldMaps, msg
+            
+            fldMaps = newList
+        elif not fldMaps:
+            fldMaps = fldMapAtrib
         return fldMaps
 
     def getAttributeRenamerFieldMaps(self):
@@ -441,16 +563,17 @@ class FMWParser():
             using getFMWFieldmaps
           - by adding an AttributeRenamer transformer.  This method will retrieve
             the field maps defined in this way.
-        
+
         AttributeRenamer transformers are used to define fieldmaps as:
-        
-        a) start by determining if the transofmer has an AttributeRenamer 
+
+        a) start by determining if the transofmer has an AttributeRenamer
            transformer in it.
         '''
         transformers = self.getTransformers()
         if 'attributeRenamer' in transformers:
             print 'heloo'
-    
+
+
 class FMWRestruct():
     '''
     This class is used to read an fmw file in and separate out
@@ -633,12 +756,3 @@ class FMWRestruct():
 #              Left over from older attempt to parse these files.
 
 
-
-
-
-'''
- currently trying to figure out how to extract fieldmaps.
- FACTORY_DEF * RoutingFactory FACTORY_NAME "Destination Feature Type Routing Correlator"
-        
-        
-'''
