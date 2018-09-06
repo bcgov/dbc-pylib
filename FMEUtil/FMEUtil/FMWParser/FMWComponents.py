@@ -484,6 +484,15 @@ class FMEFeatureClass(object):
         if self.pubParams.hasPubParams(inputString):
             outStr = self.pubParams.deReference(inputString)
         return outStr
+    
+    def __str__(self):
+        '''
+        string representation, joins dataset name and feature class name
+        '''
+        dataSet = self.getDataSet()
+        fcName = self.getFeatureClassName()
+        return '{0}/{1}'.format(dataSet, fcName)
+        
 
         
         
@@ -520,6 +529,8 @@ class FMEDataSet(object):
         #pp.pprint(self.datasetStruct)
         return self.datasetStruct[self.datasetFormatField]
 
+    def __str__(self):
+        return self.getDataSetName()
 
 # if __name__ == '__main__':
 #     logger = logging.getLogger(__name__)
