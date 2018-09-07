@@ -10,6 +10,10 @@ import logging
 import FMWParser
 import FMWParserConstants
 import re
+import pprint
+import warnings
+
+print 'FMWCOMPONENTS: ', __name__
 
 class FMEWorkspace(object):
     '''
@@ -90,6 +94,7 @@ class FMETransformers(object):
     def __init__(self, transformerStruct, publishedParams):
         self.logger = logging.getLogger(__name__)
         self.transfomerStruct = transformerStruct
+        self.logger.debug('transformer struct: {0}'.format(self.transfomerStruct))
         self.transformerNameAttribute = 'TYPE'
 
     def getJson(self):
@@ -124,7 +129,70 @@ class FMETransformers(object):
             transName = transformer['TYPE']
             transList.append(transName)
         return transList
-
+    
+    def __extractAttributeRenamerFieldMaps(self, fldMapStr, version):
+        '''
+        :param fldMapStr: the field map string, form: oldfld, newfld, default, <repeat>...
+        :param version: different versions of the attribute renamer will have 
+                        different fldmapstr formats.  
+                        version 1: uses pairs of values
+                        version 3: triplets with default values.
+        :return: a list of lists where the inner list is made up of: 
+                 [old column name, new column name]
+        '''
+        fldMapList = fldMapStr.split(',')
+        self.logger.debug("fldMapList: {0}".format(fldMapList))
+        fldMap = []
+        increment = 3
+        if version == '1':
+            increment = 2
+    
+        
+        for cntr in range(0, len(fldMapList), increment):
+            if cntr + 2 > len(fldMapList):
+                break
+            defaultValue = None
+            oldValue = fldMapList[cntr]
+            newValue = fldMapList[cntr + 1]
+            if increment == 3:
+                defaultValue = fldMapList[cntr + 2]
+            if defaultValue:
+                msg = 'Warning found a default value defined for the field {0}/{1} {2}'
+                msg = msg.format(oldValue, newValue, defaultValue)
+                self.logger.warning(msg)
+                warnings.warn(msg)
+            fldMap.append([oldValue, newValue])
+        if version not in ['1', '3', '2']:
+            print fldMapStr
+            raise
+        return fldMap
+    
+    def getAttributeRenamerFieldMap(self):
+        fldMaps = []
+        transNames = self.getTransformerNames()
+        for trans in transNames:
+            if trans.lower() == 'AttributeRenamer'.lower():
+                # need to extract the struct for this one
+                for transformer in self.transfomerStruct:
+                    if transformer['TYPE'].lower() == 'AttributeRenamer'.lower():
+                        transVersion = transformer['VERSION']
+                        #pp = pprint.PrettyPrinter(indent=4)
+                        #pp.pprint(transformer)
+                        # need to iterate over the CHILD element
+                        # list and extract the entry where 
+                        # PARM_NAME = ATTR_LIST
+                        # then extract the PARM_VALUE for that entry
+                        # the values are organized into triplets, where
+                        # OLDCOLUMN, NEWCOLUMN, DEFAULTVALUE
+                        # default should be blank
+                        for child in transformer['CHILD']:
+                            if 'PARM_NAME' in child:
+                                if child['PARM_NAME'] == 'ATTR_LIST':
+                                    if child['PARM_VALUE']:
+                                        print 'fldmapstr', child['PARM_VALUE']
+                                        fldMap = self.__extractAttributeRenamerFieldMaps(child['PARM_VALUE'], transVersion)
+                                        fldMaps.append(fldMap)
+        return fldMaps
 
 class FMEPublishedParameters(object):
     '''
@@ -197,8 +265,10 @@ class FMEFeatureClasses(object):
 
     def __init__(self, featureClassesStruct, publishedParams):
         self.logger = logging.getLogger(__name__)
+        self.logger.debug("featureClassesStruct: {0}".format(featureClassesStruct))
         self.featClassesList = []
         self.pubParms = publishedParams
+        self.logger.debug("publishedParams: {0}".format(publishedParams))
         self.addFeatureClasses(featureClassesStruct)
 
     def addFeatureClasses(self, featureClassesStruct):
@@ -338,7 +408,10 @@ class FMEFeatureClass(object):
     '''
 
     def __init__(self, fc, publishedParameters):
+        self.logger = logging.getLogger(__name__)
+        self.logger.debug("fc: {0}".format(fc))
         self.pubParams = publishedParameters
+        self.logger.debug("pubparams: {0}".format(self.pubParams))
         self.featClsStruct = fc
         self.fcNameField = 'NODE_NAME'
 
@@ -411,7 +484,19 @@ class FMEFeatureClass(object):
         if self.pubParams.hasPubParams(inputString):
             outStr = self.pubParams.deReference(inputString)
         return outStr
+    
+    def __str__(self):
+        '''
+        string representation, joins dataset name and feature class name
+        '''
+        dataSet = self.getDataSet()
+        fcName = self.getFeatureClassName()
+        return '{0}/{1}'.format(dataSet, fcName)
+        
 
+        
+        
+        
 
 class FMEDataSet(object):
 
@@ -444,6 +529,8 @@ class FMEDataSet(object):
         #pp.pprint(self.datasetStruct)
         return self.datasetStruct[self.datasetFormatField]
 
+    def __str__(self):
+        return self.getDataSetName()
 
 # if __name__ == '__main__':
 #     logger = logging.getLogger(__name__)
