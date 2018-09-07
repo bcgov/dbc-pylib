@@ -14,6 +14,9 @@ import Secrets
 import FMEUtil.PyFMEServerV2 as FMEServer
 import Secrets.GetSecrets
 import logging
+import time
+import os
+import json
 
 class Constants(object):  # pylint: disable=too-few-public-methods
     pass
@@ -310,5 +313,61 @@ class Workspace(object):
             cnt += 1
         return job.getJob()
 
+
+class Status(object):
+    '''
+    Class used to determine whether a specific job has already
+    been run.
+    '''
+
+    def __init__(self, env, repoName, fmw):
+        self.const = Constants()
+        self.repoName = repoName
+        self.fmw = fmw
+        curRunStatusDir = 'RunAsync_{0}'.format(env)
+        statusDir = os.path.join(os.path.dirname(__file__),
+                                 '..',
+                                 self.const.statusDir)
+        if not os.path.exists(statusDir):
+            os.mkdir(statusDir)
+        self.statusDir = os.path.join(statusDir, curRunStatusDir)
+        self.statusDir = os.path.normpath(self.statusDir)
+        if not os.path.exists(self.statusDir):
+            os.mkdir(self.statusDir)
+
+    def getStatusFileName(self):
+        '''
+        :return: returns the status file name that is used for the information that
+                 was defined in the constructor of this object.
+        '''
+        statusFile = "{0}___{1}.txt".format(self.repoName, self.fmw)
+        statusFilePath = os.path.join(self.statusDir,
+                                      statusFile)
+        return statusFilePath
+
+    def hasRun(self):
+        '''
+        :return: boolean value indicating whether the script has been run already
+        '''
+        statusFilePath = self.getStatusFileName()
+        retVal = False
+        if os.path.exists(statusFilePath):
+            retVal = True
+        return retVal
+
+    def setCompleted(self, returnStruct=None):
+        '''
+        :param returnStruct: The output from the api call.  if nothing is sent
+                             the status file will get created but it will not
+                             have any data in it.
+        Receives the status from the api call, and writes the output as a json
+        string to the status file.
+        '''
+        statusFilePath = self.getStatusFileName()
+        if not os.path.exists(statusFilePath):
+            fh = open(statusFilePath, 'w')
+            if returnStruct:
+                json.dump(returnStruct, fh)
+            fh.close()
 
 
