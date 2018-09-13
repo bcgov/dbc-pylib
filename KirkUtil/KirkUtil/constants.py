@@ -50,7 +50,11 @@ class SourceTypes():
     going to be one
     '''
     file_geo_database = 'FGDB'
-    
+
+# error messages for various api methods
 GET_NON_200_ERROR_MSG = r'GET request to {0} has a status_code of {1}, returned data is: {2}'
 POST_NON_200_ERROR_MSG = r'POST request to {0} has a status_code of {1}, returned data is: {2}'
 DELETE_NON_200_ERROR_MSG = r'DELETE request to {0} has a status_code of {1}, returned data is: {2}'
+
+# file name templates
+FIELDMAP_CSV = 'fieldmaps_{0}.csv'
