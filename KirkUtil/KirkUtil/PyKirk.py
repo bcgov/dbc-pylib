@@ -7,6 +7,7 @@ A python wrapper around the kirk rest api.
 
 '''
 
+from __future__ import unicode_literals
 import logging
 from . import constants
 import urlparse
@@ -83,6 +84,7 @@ class FieldMaps(object):
                   fldmapProps.destColumnName.name: destColumnName }
         
         resp = requests.post(self.fldmapUrl, data=struct, headers=self.baseObj.authHeader)
+        self.logger.debug("response from fieldmap post: %s", resp.json())
         if resp.status_code < 200 or resp.status_code >= 300:
             msg = constants.POST_NON_200_ERROR_MSG.format(self.fldmapUrl, resp.status_code, resp.text)
             raise APIError, msg
@@ -123,7 +125,7 @@ class FieldMaps(object):
                 break
         return retVal
     
-    def deleteFieldMap(self, fldMapId):
+    def deleteFieldMap(self, fldMapId, cancelUpdate=False):
         fldMapUrl = urlparse.urljoin(self.fldmapUrl, str(fldMapId), True)
         fldMapUrl = self.baseObj.fixUrlPath(fldMapUrl)
         
@@ -135,8 +137,9 @@ class FieldMaps(object):
 
         self.logger.debug('response status code: %s', resp.status_code)
         
-        # refresh the fieldmaps after the delete operation has takens place
-        self.getFieldMaps(force=True)
+        if not cancelUpdate:
+            # refresh the fieldmaps after the delete operation has takens place
+            self.getFieldMaps(force=True)
         
         return resp
         
@@ -177,7 +180,7 @@ class Sources(object):
         sourceProps = constants.SourceProperties
         jobSrcs = []
         for src in srcs:
-            if src[sourceProps.Jobid.name] == jobid:
+            if src[sourceProps.jobid.name] == jobid:
                 jobSrcs.append(src)
         return jobSrcs
     
@@ -242,7 +245,7 @@ class Sources(object):
         
         # response = requests.get(self.sourcesUrl, headers=self.baseObj.authHeader)
         
-        sourceProps = constants.SourceProperties
+        #sourceProps = constants.SourceProperties
         
         srcUrl = urlparse.urljoin(self.sourcesUrl, str(srcId), True)
         srcUrl = self.baseObj.fixUrlPath(srcUrl)
@@ -295,7 +298,42 @@ class Jobs(object):
             # print 'response:', respJson
         return respJson
     
-    def postJobs(self, status, cronStr, destEnv, jobLabel):
+    def getJob(self, jobid):
+        '''
+        returns specific information about a job if it exists.
+        '''
+        # could use the caching, but thinking stay away unless becomes a big
+        # performance issue
+        jobUrl = urlparse.urljoin(self.jobsUrl, str(jobid), True)
+        jobUrl = self.baseObj.fixUrlPath(jobUrl)
+        
+        response = requests.get(jobUrl, headers=self.baseObj.authHeader)
+        self.logger.debug("response Status: %s", response.status_code)
+        if response.status_code < 200 or response.status_code >= 300:
+            msg = constants.GET_NON_200_ERROR_MSG.format(self.jobsUrl, response.status_code, response.text)
+            raise APIError, msg
+        respJson = response.json()
+        self.logger.debug("individual job response json: %s", respJson)
+        return respJson
+    
+    def getJobSources(self, jobid):
+        '''
+        :param jobid: the jobid who's source you want to return
+        '''
+        jobUrl = urlparse.urljoin(self.jobsUrl, str(jobid), True)
+        jobUrl = self.baseObj.fixUrlPath(jobUrl)
+        jobUrl = urlparse.urljoin(jobUrl, constants.KirkApiPaths.Sources, True)
+        jobUrl = self.baseObj.fixUrlPath(jobUrl)
+        response = requests.get(jobUrl, headers=self.baseObj.authHeader)
+        self.logger.debug("response Status: %s", response.status_code)
+        if response.status_code < 200 or response.status_code >= 300:
+            msg = constants.GET_NON_200_ERROR_MSG.format(self.jobsUrl, response.status_code, response.text)
+            raise APIError, msg
+        respJson = response.json()
+        self.logger.debug("source for job %s response json: %s", jobid, respJson)
+        return respJson
+        
+    def postJobs(self, status, cronStr, destEnv, jobLabel, schema, fcName):
         '''
         Adds a Job to the api
            - jobStatus (PENDING, HOLD for test data or jobs that should not be active)
@@ -306,7 +344,10 @@ class Jobs(object):
         struct = {jobProps.destField.name: destEnv,
                   jobProps.cronStr.name: cronStr,
                   jobProps.jobStatus.name: status,
-                  jobProps.jobLabel.name:  jobLabel}
+                  jobProps.jobLabel.name:  jobLabel,
+                  jobProps.destTableName.name: fcName, 
+                  jobProps.destSchema.name: schema
+                  }
         resp = requests.post(self.jobsUrl, data=struct, headers=self.baseObj.authHeader)
         if resp.status_code < 200 or resp.status_code >= 300:
             msg = constants.POST_NON_200_ERROR_MSG.format(self.jobsUrl, resp.status_code, resp.text)
@@ -315,8 +356,8 @@ class Jobs(object):
         self.getJobs(force=True)
         return resp.json()
     
-    def addJobs(self, status, cronStr, destEnv, jobLabel):
-        retVal = self.postJobs(status, cronStr, destEnv, jobLabel)
+    def addJobs(self, status, cronStr, destEnv, jobLabel, destSchema, destFeatureClass):
+        retVal = self.postJobs(status, cronStr, destEnv, jobLabel, destSchema, destFeatureClass)
         return retVal
     
     def deleteJob(self, jobid):

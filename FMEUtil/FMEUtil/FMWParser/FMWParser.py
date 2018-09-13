@@ -301,14 +301,6 @@ class FMWParser(object):
                 ftypes.append(fypePy)
         return ftypes
 
-    def getSourceFeatureTypes(self):
-        allFtypes = self.getFeatureTypes()
-        srcTypes = []
-        for ftype in allFtypes:
-             # TODO: once the published parameter and the dataset have
-             # been linked can continue with this task
-            pass
-
     def getTransformers(self, enabledOnly=True):
         '''
         extracts the portion of the document that starts with the tag:
@@ -573,6 +565,58 @@ class FMWParser(object):
         if 'attributeRenamer' in transformers:
             print 'heloo'
 
+    def getDestinationSchema(self, fcName):
+        '''
+        :param fcName: name of the feature class / feature type who's schema you 
+                       are trying to retrieve.
+        
+        destination schema's can be defined in a number of different locations.  the 
+        method will search in the following order in an attempt to extract the destination 
+        schema from this dataset.
+          - First finds destination feature classes for the FMW, Then searches the following 
+           parameters for the feature classes looking for destination schema:
+             - FEATURE_TYPE_NAME_QUALIFIER - if this is filled in assumes that this 
+                                             is the schema name, if blank caries on...
+             - NODE_NAME - loooks at the node name, if it can be split on a '.' character
+                           then assumes the format is schema.featureclassname and 
+                           pulls the schema from the start of this name, otherwise...
+          - next if none of the above attempts to find the destination schema are
+            successful then reads the published parameters and gets it from 
+            DEST_SCHEMA
+        '''
+        destschemas = []
+        wrkspcObj = self.getFMEWorkspace()
+        featureClasses = wrkspcObj.getFeatureClasses()
+        dests = featureClasses.getDestinations()
+        pubParams = wrkspcObj.getPublishedParameters()
+        schema = None
+        self.logger.debug("pubparams: %s", pubParams.getJson())
+        for dest in dests:
+            curFcName = dest.getFeatureClassName()
+            self.logger.debug("curFcName: %s", curFcName)
+            if curFcName.lower().strip() == fcName.lower().strip():
+                schema = dest.getParamName('FEATURE_TYPE_NAME_QUALIFIER')
+                self.logger.debug("FEATURE_TYPE_NAME_QUALIFIER: %s", schema)
+                if not schema:
+                    fullFcName =  dest.getParamName('NODE_NAME')
+                    self.logger.debug("node name: %s", fullFcName)
+                    fullFcNameSplit = fullFcName.split('.')
+                    if len(fullFcNameSplit) == 2:
+                        schema = fullFcNameSplit[0]
+                    if not schema:
+                        # TODO: should really create a FMEUTIL constants file where these
+                        # types of parameters are stored
+                        self.logger.debug('Looking for DEST_SCHEMA in dest params...')
+                        schema = pubParams.getPublishedParameterValue('DEST_SCHEMA')
+                        self.logger.debug("schema: %s", schema)
+                    if schema is None:
+                        # TODO: should really create a FMEUTIL constants file where these
+                        # types of parameters are stored
+                        if pubParams.hasPubParams('DEST_SCHEMA_1'):
+                            schema = pubParams.getPublishedParameterValue('DEST_SCHEMA_1')
+            if schema: 
+                break
+        return schema
 
 class FMWRestruct():
     '''

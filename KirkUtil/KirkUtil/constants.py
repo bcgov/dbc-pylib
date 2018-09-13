@@ -20,6 +20,8 @@ class JobProperties(Enum):
     owner = 7
     date_created = 8
     cronStr = 9
+    destTableName = 10
+    destSchema = 11
     
 class SourceProperties(Enum):
     sourceid = 1

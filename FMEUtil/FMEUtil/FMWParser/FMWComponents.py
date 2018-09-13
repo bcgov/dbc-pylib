@@ -15,6 +15,7 @@ import warnings
 
 print 'FMWCOMPONENTS: ', __name__
 
+
 class FMEWorkspace(object):
     '''
     Provides an api to extract information about the workspace
@@ -146,7 +147,6 @@ class FMETransformers(object):
         increment = 3
         if version == '1':
             increment = 2
-    
         
         for cntr in range(0, len(fldMapList), increment):
             if cntr + 2 > len(fldMapList):
@@ -176,8 +176,8 @@ class FMETransformers(object):
                 for transformer in self.transfomerStruct:
                     if transformer['TYPE'].lower() == 'AttributeRenamer'.lower():
                         transVersion = transformer['VERSION']
-                        #pp = pprint.PrettyPrinter(indent=4)
-                        #pp.pprint(transformer)
+                        # pp = pprint.PrettyPrinter(indent=4)
+                        # pp.pprint(transformer)
                         # need to iterate over the CHILD element
                         # list and extract the entry where 
                         # PARM_NAME = ATTR_LIST
@@ -193,6 +193,7 @@ class FMETransformers(object):
                                         fldMap = self.__extractAttributeRenamerFieldMaps(child['PARM_VALUE'], transVersion)
                                         fldMaps.append(fldMap)
         return fldMaps
+
 
 class FMEPublishedParameters(object):
     '''
@@ -226,8 +227,21 @@ class FMEPublishedParameters(object):
         :rtype: bool
         '''
         retVal = False
+        self.logger.debug("self.publishedParams: %s", self.publishedParams)
         if self.hasPubParamRegex.match(inStr):
             retVal = True
+        return retVal
+
+    def getPublishedParameterValue(self, publishedParameterName):
+        '''
+        :param publishedParameterName: the name of a published parameter variable
+                                       name.  Returns the value if the parameter
+                                       exists and None if it does not
+        '''
+        retVal = None
+        for param in self.publishedParams:
+            if param == publishedParameterName:
+                retVal = self.publishedParams[param]['DEFAULT_VALUE']
         return retVal
 
     def deReference(self, inStr):
@@ -414,19 +428,98 @@ class FMEFeatureClass(object):
         self.logger.debug("pubparams: {0}".format(self.pubParams))
         self.featClsStruct = fc
         self.fcNameField = 'NODE_NAME'
+        self.featureTypeName = 'FEATURE_TYPE_NAME'
 
     def isSource(self):
         retVal = True
         if self.featClsStruct['DATASET']['IS_SOURCE'] == 'false':
             retVal = False
         return retVal
+    
+    def getParamName(self, paramName):
+        '''
+        Used to get parameters from the xml for the feature class that 
+        don't have methods associated with them.  Example, this is a
+        list of parameters associated with a feature type.  To get the 
+        value of any of them simply include as an arguement to this 
+        method.
+        
+        id to get IS_SOURCE say ...getParamName(paramName='IS_SOURCE')
+        will return "false"
+        
+             <FEATURE_TYPE
+                 IS_SOURCE="false"
+                 NODE_NAME="AMA_SNOWMOBILE_MGMT_AREAS_SP"
+                 FEATURE_TYPE_NAME=""
+                 FEATURE_TYPE_NAME_QUALIFIER=""
+                 IS_EDITABLE="true"
+                 IDENTIFIER="32"
+                 FEAT_GEOMTYPE="sde30_area"
+                 POSITION="1221 -385.69"
+                 BOUNDING_RECT="1221 -385.69 0 0"
+                 ORDER="35"
+                 COLLAPSED="false"
+                 KEYWORD="SDE30_1"
+                 PARMS_EDITED="true"
+                 ENABLED="true"
+                 SCHEMA_ATTRIBUTE_SOURCE="1"
+             >
+
+        :param paramName : the name of the feature type property who's corresponding
+                           value you are trying to retrieve.
+        '''
+        if not paramName in self.featClsStruct:
+            msg = 'The parameter {0} does not exist as a property of this feature ' + \
+                  'type.  Possible values include: {1}'
+            msg = msg.format(paramName, self.featClsStruct.keys())
+            self.logger.error(msg)
+            raise ValueError, msg
+        return self.featClsStruct[paramName]
 
     def getDataSet(self):
         dataset = FMEDataSet(self.featClsStruct['DATASET'])
         return dataset
 
     def getFeatureClassName(self):
-        return self.featClsStruct[self.fcNameField]
+        '''
+        starts by getting the NODE_NAME described for the feature type.  This should
+        be the fully qualified name with the schema in front of it.  Then to make sure 
+        this entry looks correct a bit of sanity checking takes place by comparing this 
+        value with the value in the property FEATURE_TYPE_NAME, it the names align then 
+        the assumption is that everything is ok.  If not then will get the name from 
+        the published parameter DEST_FEATURE_1
+        '''
+        nodeName = self.featClsStruct[self.fcNameField]
+        featureType = self.featClsStruct[self.featureTypeName]
+        nodeNameList = nodeName.split('.')
+        
+        if self.isSource():
+            pubParamName = 'SRC_FEATURE_1'
+        else:
+            pubParamName = 'DEST_FEATURE_1'
+        
+        if len(nodeNameList) > 1:
+            nodeNameFeatureClass = nodeNameList[1]
+        else:
+            nodeNameFeatureClass = nodeName
+        if nodeNameFeatureClass.lower().strip() == featureType.lower().strip():
+            retVal = nodeName
+        else:
+            # now hunting down the published parameters for the DEST_FEATURE_1
+            # parameter then return whatever that value is.
+            ppfc = self.pubParams.getPublishedParameterValue(pubParamName)
+            if ppfc:
+                if ppfc.lower().strip() == nodeNameFeatureClass.lower().strip() or \
+                   ppfc.lower().strip() == featureType.lower().strip():
+                    retVal = ppfc
+                else:
+                    msg = 'not sure what the destination feature class is for this fmw ' + \
+                          'NODE_NAME = {0} FEATURE_TYPE_NAME = {1} and the published ' + \
+                          'parameter $({3}) = {2}'
+                    msg = msg.format(nodeName, featureType, ppfc, pubParamName)
+                    self.logger.warning(msg)
+                    
+        return retVal
 
     def getFeatureClassPropertiesAsNameChild(self):
         '''
@@ -494,10 +587,6 @@ class FMEFeatureClass(object):
         return '{0}/{1}'.format(dataSet, fcName)
         
 
-        
-        
-        
-
 class FMEDataSet(object):
 
     def __init__(self, datasetStruct):
@@ -525,8 +614,8 @@ class FMEDataSet(object):
         '''
         :return: The dataset format / type
         '''
-        #pp = pprint.PrettyPrinter(indent=4)
-        #pp.pprint(self.datasetStruct)
+        # pp = pprint.PrettyPrinter(indent=4)
+        # pp.pprint(self.datasetStruct)
         return self.datasetStruct[self.datasetFormatField]
 
     def __str__(self):
