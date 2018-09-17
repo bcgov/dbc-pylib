@@ -73,7 +73,9 @@ for src in sources:
 ```
 
 
-and the same thing for destinations:
+### Getting Destinations
+
+Basically the same as above but for destinations
 
 ``` python
 ...
@@ -85,4 +87,8 @@ for dest in dests:
 
 For more examples see the FMWParserGettingStartedDemo.py file in the 
 FMEUtil repo.
+
+### Getting Transformers
+
+
 

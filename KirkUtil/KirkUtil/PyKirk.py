@@ -6,16 +6,25 @@ Created on Aug 8, 2018
 A python wrapper around the kirk rest api.
 
 '''
+# pylint: disable=invalid-name
+# pylint: disable=logging-format-interpolation
 
 from __future__ import unicode_literals
+
 import logging
-from . import constants
-import urlparse
-import requests
 import os.path
+import urlparse
+
+import requests
+
+from . import constants
 
 
 class BaseRestCall(object):
+    '''
+    all kirk api methods will inherit from this class, includes base data
+    and functions that relate to all api calls.
+    '''
 
     def __init__(self, baseurl, token, apiVersion=1):
         self.logger = logging.getLogger(__name__)
@@ -36,24 +45,45 @@ class BaseRestCall(object):
 
 
 class Kirk(BaseRestCall):
+    '''
+    The base class for all interactions with the KIRK api
+    '''
 
     def __init__(self, baseurl, token):
         BaseRestCall.__init__(self, baseurl, token)
 
     def getJobs(self):
+        '''
+        :return:  a 'Jobs' object used to interact with the jobs end point
+        '''
         jobs = Jobs(self)
         return jobs
 
     def getSources(self):
+        '''
+        :return: a 'Sources' object, used to interact with the source end
+                 point.
+        '''
         sources = Sources(self)
         return sources
 
     def getFieldMaps(self):
+        '''
+        :return: a 'Fieldmap' object, used to interact with the fieldmap
+                 end point
+        '''
         fldMaps = FieldMaps(self)
         return fldMaps
 
 
 class FieldMaps(object):
+    '''
+    functionality relating to interaction with the fieldmap end point
+
+    :ivar baseObj: reference to the object that contains the root path to
+                   the api, etc.
+    :ivar fldmapUrl: the root fieldmap url
+    '''
 
     def __init__(self, baseObj):
         self.logger = logging.getLogger(__name__)
@@ -65,6 +95,19 @@ class FieldMaps(object):
         self.fldMaps = None
 
     def getFieldMaps(self, force=False):
+        '''
+        Queries the api and retrieves a list of the currently defined
+        fieldmaps.  Once this has been done once the results are cached and
+        re-used.  If you want to force a refresh of the cached data indicate
+        a 'True' value for the 'force' parameter
+
+        :param force: inicates whether you want to force the method to
+                      refresh the cache.  In other words force it to igore
+                      the cache, make the query to the api, and refresh the
+                      data in the cache.
+        :type force: bool
+        '''
+
         if self.fldMaps is not None and not force:
             respJson = self.fldMaps
         else:
@@ -82,6 +125,16 @@ class FieldMaps(object):
         return respJson
 
     def postFieldMaps(self, jobid, sourceColumnName, destColumnName):
+        '''
+        Adds a new field map based on provided parameters
+        :param jobid: the job id that the fieldmap should be associated with
+        :type jobid: int/str
+        :param sourceColumnName: the name of the source column
+        :type sourceColumnName: str
+        :param destColumnName: the name of the destination column
+        :type destColumnName: str
+        '''
+
         fldmapProps = constants.FieldmapProps
 
         struct = {fldmapProps.jobid.name: jobid,
@@ -124,6 +177,22 @@ class FieldMaps(object):
         return retVal
 
     def getFieldMapId(self, jobid, sourceColumn, destColumnName):
+        '''
+        Using the jobid, source column namd and destination column name
+        retrieves the corresponding fieldmap id.
+
+        :param jobid: the input job id, that corresponds with the fieldmap
+                      that you want to retrieve
+        :type jobid: str/int
+        :param sourceColumn: the name of the source column in the fieldmap
+                             that you are searching for
+        :type sourceColumn: str
+        :param destColumnName: the name of the destination column that
+                               corresponds with the fieldmap you are trying
+                               to retrieve
+        :type destColumnName: str
+        '''
+
         fldMaps = self.getFieldMaps()
         fmProps = constants.FieldmapProps
         retVal = None
@@ -136,6 +205,22 @@ class FieldMaps(object):
         return retVal
 
     def deleteFieldMap(self, fldMapId, cancelUpdate=False):
+        '''
+        deletes a fieldmap entry
+
+        :param fldMapId: the fieldmap id that identifies the record you want
+                         to delete
+        :type fldMapId: int/str
+        :param cancelUpdate: You can override this parameter to cause the
+                            method not to update the cached data about
+                            fieldmaps.  This can save a lot of round trips
+                            if you are deleting a lot of fieldmap data but
+                            can then also result in stale data getting returned
+                            if you forget to refresh it with a call to
+                            getFieldMaps(force=True)
+        :type cancelUpdate: bool
+        '''
+
         fldMapUrl = urlparse.urljoin(self.fldmapUrl, str(fldMapId), True)
         fldMapUrl = self.baseObj.fixUrlPath(fldMapUrl)
 
@@ -143,7 +228,7 @@ class FieldMaps(object):
 
         if resp.status_code < 200 or resp.status_code >= 300:
             msg = constants.DELETE_NON_200_ERROR_MSG.format(
-                self.fldMapUrl, resp.status_code, resp.text)
+                fldMapUrl, resp.status_code, resp.text)
             raise APIError(msg)
 
         self.logger.debug('response status code: %s', resp.status_code)
@@ -281,6 +366,9 @@ class Sources(object):
 
 
 class Jobs(object):
+    '''
+    class that interacts with the Jobs end point
+    '''
 
     def __init__(self, baseObj):
         self.logger = logging.getLogger(__name__)
@@ -412,8 +500,7 @@ class Jobs(object):
                   jobProps.jobStatus.name: status,
                   jobProps.jobLabel.name:  jobLabel,
                   jobProps.destTableName.name: fcName,
-                  jobProps.destSchema.name: schema
-                  }
+                  jobProps.destSchema.name: schema}
         resp = requests.post(self.jobsUrl, data=struct,
                              headers=self.baseObj.authHeader)
         if resp.status_code < 200 or resp.status_code >= 300:
@@ -445,8 +532,9 @@ class Jobs(object):
         resp = requests.delete(jobsUrl, headers=self.baseObj.authHeader)
 
         if resp.status_code < 200 or resp.status_code >= 300:
-            msg = constants.DELETE_NON_200_ERROR_MSG.format(self.jobsUrl, resp.status_code, resp.text)
-            raise APIError, msg
+            msg = constants.DELETE_NON_200_ERROR_MSG.format(
+                self.jobsUrl, resp.status_code, resp.text)
+            raise APIError(msg)
 
         self.logger.debug('response status code: %s', resp.status_code)
         self.getJobs(force=True)
@@ -457,8 +545,8 @@ class Jobs(object):
         :param columnName: Used in combination with value, basically the job is
                        considered to exists, if there is a record where column
                        = value
-        :param value: the value that the columnName should be equal to in a record
-                      in order to consider the job as existing.
+        :param value: the value that the columnName should be equal to in a
+                      record in order to consider the job as existing.
         '''
         retVal = False
         jobs = self.getJobs()
@@ -476,6 +564,11 @@ class Jobs(object):
         return retVal
 
     def jobLabelExists(self, jobLabel):
+        '''
+        :param jobLabel: the job label who's existence you want to determine
+        :return: bool indicating if a job with the provided label exists
+
+        '''
         retVal = self.jobExists(self.JobProperties.jobLabel.name, jobLabel)
         return retVal
 
@@ -497,9 +590,11 @@ class Jobs(object):
 
 
 class APIError(Exception):
+    '''
+    Error / exception for non 200 responses.
+    '''
 
     def __init__(self, message):
 
         # Call the base class constructor with the parameters it needs
         super(APIError, self).__init__(message)
-

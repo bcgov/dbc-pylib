@@ -3,7 +3,7 @@ Created on Jul 24, 2018
 
 @author: kjnether
 
-When a FMW gets parsed it gets broken up into the various components 
+When a FMW gets parsed it gets broken up into the various components
 described in this module.
 '''
 import logging
@@ -41,7 +41,7 @@ class FMEWorkspace(object):
                             names
                         Published Parameters
                             name / value pairs
-        
+
         '''
         # TODO: not working at the moment 7-24-2018
         pubParamsJson = self.publishedParams.getJson()
@@ -74,14 +74,14 @@ class FMEWorkspace(object):
 
     def hasFieldMap(self):
         '''
-        fieldmaps can be defined in two different ways, one way is to 
-        use an "AttributeRenamer" transformer.  At DataBC this is the 
+        fieldmaps can be defined in two different ways, one way is to
+        use an "AttributeRenamer" transformer.  At DataBC this is the
         "preferred" way of doing this.  The other way is to drag
         connecting lines from either the reader or the last transformer
         to the writers feature class.
-        
+
         This method should be able detect both of these approaches.
-        
+
         '''
         # TODO: write code to do this.
 
@@ -89,14 +89,31 @@ class FMEWorkspace(object):
 class FMETransformers(object):
     '''
     a wrapper to the transformer data struct that should hopefully make it
-    easy to extract information about transformers.
+    easy to extract information about transformers,
+
+    functionality for dealing with collections of transformers, Puts
+    individual transformer information into 'Transforer' objects
     '''
 
     def __init__(self, transformerStruct, publishedParams):
         self.logger = logging.getLogger(__name__)
         self.transfomerStruct = transformerStruct
+        self.pubParams = publishedParams
         self.logger.debug('transformer struct: {0}'.format(self.transfomerStruct))
-        self.transformerNameAttribute = 'TYPE'
+        self.transformerList = None
+        self.parseTransformers()
+
+    def parseTransformers(self):
+        '''
+        rips through the transformers data sturct extracting indvidual
+        transformers and storing in 'Transforer' objects
+        '''
+        self.transformerList = []
+        for trans in self.transfomerStruct:
+            self.logger.debug("trans: %s", trans)
+            print "trans: %s", trans
+            transformer = Transformer(trans)
+            self.transformerList.append(transformer)
 
     def getJson(self):
         transformerList = []
@@ -125,20 +142,224 @@ class FMETransformers(object):
 
         transformer name is extracted from the TYPE parameter
         '''
+        transNameList = []
+        for transformer in self.transformerList:
+            transName = transformer.getType()
+            transNameList.append(transName)
+        return transNameList
+
+    def _getInst(self, instType):
         transList = []
-        for transformer in self.transfomerStruct:
-            transName = transformer['TYPE']
-            transList.append(transName)
+        for transformer in self.transformerList:
+            if isinstance(transformer, instType):
+                transList.append(transformer)
         return transList
-    
+
+    def _hasInst(self, instType):
+        retVal = False
+        for transformer in self.transformerList:
+            if isinstance(transformer, instType):
+                retVal = True
+                break
+        return retVal
+
+    def hasAttributeRenamer(self):
+        return self._hasInst(AttributeRenamerTransformer)
+
+    def getAttributeTransformers(self):
+        return self._getInst(AttributeRenamerTransformer)
+
+    def hasCounter(self):
+        return self._hasInst(CounterTransformer)
+
+    def getCounterTransformers(self):
+        return self._getInst(CounterTransformer)
+
+
+class Transformer(object):
+    '''
+    wraps the transformer data structure
+    '''
+
+    def __new__(cls, struct):
+        if struct['TYPE'].lower() == 'counter':
+            return CounterTransformer(struct)
+        elif struct['TYPE'].lower() == 'attributerenamer':
+            return AttributeRenamerTransformer(struct)
+        else:
+            return TransfomerBase(struct)
+
+
+class TransfomerBase(object):
+
+    def __init__(self, struct):
+        self.logger = logging.getLogger(__name__)
+        self.struct = struct
+
+    def getType(self):
+        transName = self.struct['TYPE']
+        return transName
+
+    def isCounter(self):
+        '''
+        queries the transformer to determine if it is a 'counter'
+        transformer, the type of transformer is extracted from the
+        property 'TYPE' of the transformer
+        '''
+        retVal = False
+        if self.transformerNameAttribute.lower() == 'counter':
+            retVal = True
+        return retVal
+
+    def _searchChildElems(self, types, searchList, returnKey):
+        '''
+        Most transformers have a 'CHILD' section that describes the output
+        attributes and the parameters that are sent to the transformer.
+
+        This will look as follows in the self.struct...
+
+        {...
+          'CHILD': [{   'ELEMENTNAME': 'OUTPUT_FEAT', 'NAME': 'OUTPUT'},
+                     ...
+                    {   'ATTR_NAME': 'CLTRL_HERITAGE_SITE_ID',
+                     'ELEMENTNAME': 'XFORM_ATTR',
+                     'FEAT_INDEX': '0',
+                     'IS_USER_CREATED': 'false'},
+                     ...
+                    {   'ELEMENTNAME': 'XFORM_PARM',
+                     'PARM_NAME': 'XFORMER_NAME',
+                     'PARM_VALUE': 'Counter'},
+                     ...
+
+        The following parameter descriptions will use the struct above as
+        a reference to help explain what they do.
+
+        :param types: child record types are idenfied by the presence of
+                      attribute names, this parameter identifies a list
+                      of attributes that the CHILD element will have to have,
+                      examples:
+
+                      ['PARM_NAME'] would select out entries
+                      that describe parameters to the transformer, ie
+                      parameters that get filled in when you create or
+                      edit the transformer
+
+                      ['ATTR_NAME'] would select out entries that describe
+                      the output attributes that are comming out of this
+                      transformer
+
+        :param searchList: The first parameter would identify the record
+                     type, this attribute will identify a selection
+                     criteria for records of that type,
+
+                     This parameter is a list of lists, where each inner
+                     list is made up of:
+                        0 - Property name
+                        1 - Property value
+
+                    So using the example above, would return 'Counter'
+                    if I provided the list:
+                    ['PARM_NAME', 'XFORMER_NAME']
+
+        :param returnKey: having identified a child key you want to return
+                    this value identifies the parameter for the child
+                    element that you want to return
+
+        Putting it together if the method was called with the following
+        parameter values, given the data described above...
+
+           types = ['ELEMENTNAME']
+           searchList = [['PARM_NAME','XFORMER_NAME']]
+           returnKey = 'PARM_VALUE'
+
+        It would return the value: 'Counter'
+
+        '''
+        retVal = False
+        for elem in self.struct['CHILD']:
+            matches = True
+            for type in types:
+                if type not in elem:
+                    matches = False
+            if matches:
+                # matches indicates all the element types requires are
+                # present, now to evalue to the key=value list
+                for searchPair in searchList:
+                    searchKey = searchPair[0]
+                    searchValue = searchPair[1]
+                    
+                    if (searchKey in elem) and elem[searchKey] <> searchValue:
+                        matches = False
+                        break
+            if matches:
+                retVal = elem[returnKey]
+                break      
+        return retVal
+
+
+class CounterTransformer(TransfomerBase):
+    '''
+    a class created to make it easier to extract required parameters from
+    counter transformers
+    '''
+
+    def __init__(self, struct):
+        TransfomerBase.__init__(self, struct)
+
+    def getUserAssignedTransformerName(self):
+        '''
+        When a counter transformer is added to an FMW one of the things that
+        gets added to it is a transformer name.  This method will return
+        the name that was assigned to this transformer.
+
+        :return: the user supplied name for the transformer
+        '''
+        return self._searchChildElems(['ELEMENTNAME'], [['PARM_NAME', 'XFORMER_NAME'], ['ELEMENTNAME', 'XFORM_PARM']], 'PARM_VALUE')
+        
+        
+#         retVal = False
+#         for elem in self.struct['CHILD']:
+#             if 'PARM_NAME' in elem:
+#                 if self.struct['PARM_NAME'] == 'XFORMER_NAME':
+#                     retVal = self.struct['PARM_VALUE']
+#                     break
+#         return retVal
+
+    def getCounterOutputAttributeName(self):
+#         retVal = False
+#         for elem in self.struct['CHILD']:
+#             if 'PARM_NAME' in elem:
+#                 if self.struct['PARM_NAME'] == 'XFORMER_NAME':
+#                     retVal = self.struct['PARM_VALUE']
+#                     break
+        return self._searchChildElems(['ELEMENTNAME'], [['PARM_NAME', 'CNT_ATTR'], ['ELEMENTNAME', 'XFORM_PARM']], 'PARM_VALUE')
+
+
+class AttributeRenamerTransformer(TransfomerBase):
+
+    def __init__(self, struct):
+        TransfomerBase.__init__(self, struct)
+
+    def getAttributeRenamerFieldMap(self):
+        fldMaps = []
+        transVersion = self.struct['VERSION']
+        for child in self.struct['CHILD']:
+            if 'PARM_NAME' in child:
+                if child['PARM_NAME'] == 'ATTR_LIST':
+                    if child['PARM_VALUE']:
+                        print 'fldmapstr', child['PARM_VALUE']
+                        fldMaps = self.__extractAttributeRenamerFieldMaps(child['PARM_VALUE'], transVersion)
+                        # fldMaps.append(fldMap)
+        return fldMaps
+
     def __extractAttributeRenamerFieldMaps(self, fldMapStr, version):
         '''
         :param fldMapStr: the field map string, form: oldfld, newfld, default, <repeat>...
-        :param version: different versions of the attribute renamer will have 
-                        different fldmapstr formats.  
+        :param version: different versions of the attribute renamer will have
+                        different fldmapstr formats.
                         version 1: uses pairs of values
                         version 3: triplets with default values.
-        :return: a list of lists where the inner list is made up of: 
+        :return: a list of lists where the inner list is made up of:
                  [old column name, new column name]
         '''
         fldMapList = fldMapStr.split(',')
@@ -147,7 +368,7 @@ class FMETransformers(object):
         increment = 3
         if version == '1':
             increment = 2
-        
+
         for cntr in range(0, len(fldMapList), increment):
             if cntr + 2 > len(fldMapList):
                 break
@@ -166,33 +387,6 @@ class FMETransformers(object):
             print fldMapStr
             raise
         return fldMap
-    
-    def getAttributeRenamerFieldMap(self):
-        fldMaps = []
-        transNames = self.getTransformerNames()
-        for trans in transNames:
-            if trans.lower() == 'AttributeRenamer'.lower():
-                # need to extract the struct for this one
-                for transformer in self.transfomerStruct:
-                    if transformer['TYPE'].lower() == 'AttributeRenamer'.lower():
-                        transVersion = transformer['VERSION']
-                        # pp = pprint.PrettyPrinter(indent=4)
-                        # pp.pprint(transformer)
-                        # need to iterate over the CHILD element
-                        # list and extract the entry where 
-                        # PARM_NAME = ATTR_LIST
-                        # then extract the PARM_VALUE for that entry
-                        # the values are organized into triplets, where
-                        # OLDCOLUMN, NEWCOLUMN, DEFAULTVALUE
-                        # default should be blank
-                        for child in transformer['CHILD']:
-                            if 'PARM_NAME' in child:
-                                if child['PARM_NAME'] == 'ATTR_LIST':
-                                    if child['PARM_VALUE']:
-                                        print 'fldmapstr', child['PARM_VALUE']
-                                        fldMap = self.__extractAttributeRenamerFieldMaps(child['PARM_VALUE'], transVersion)
-                                        fldMaps.append(fldMap)
-        return fldMaps
 
 
 class FMEPublishedParameters(object):
@@ -435,18 +629,18 @@ class FMEFeatureClass(object):
         if self.featClsStruct['DATASET']['IS_SOURCE'] == 'false':
             retVal = False
         return retVal
-    
+
     def getParamName(self, paramName):
         '''
-        Used to get parameters from the xml for the feature class that 
+        Used to get parameters from the xml for the feature class that
         don't have methods associated with them.  Example, this is a
-        list of parameters associated with a feature type.  To get the 
-        value of any of them simply include as an arguement to this 
+        list of parameters associated with a feature type.  To get the
+        value of any of them simply include as an arguement to this
         method.
-        
+
         id to get IS_SOURCE say ...getParamName(paramName='IS_SOURCE')
         will return "false"
-        
+
              <FEATURE_TYPE
                  IS_SOURCE="false"
                  NODE_NAME="AMA_SNOWMOBILE_MGMT_AREAS_SP"
@@ -483,21 +677,21 @@ class FMEFeatureClass(object):
     def getFeatureClassName(self):
         '''
         starts by getting the NODE_NAME described for the feature type.  This should
-        be the fully qualified name with the schema in front of it.  Then to make sure 
-        this entry looks correct a bit of sanity checking takes place by comparing this 
-        value with the value in the property FEATURE_TYPE_NAME, it the names align then 
-        the assumption is that everything is ok.  If not then will get the name from 
+        be the fully qualified name with the schema in front of it.  Then to make sure
+        this entry looks correct a bit of sanity checking takes place by comparing this
+        value with the value in the property FEATURE_TYPE_NAME, it the names align then
+        the assumption is that everything is ok.  If not then will get the name from
         the published parameter DEST_FEATURE_1
         '''
         nodeName = self.featClsStruct[self.fcNameField]
         featureType = self.featClsStruct[self.featureTypeName]
         nodeNameList = nodeName.split('.')
-        
+
         if self.isSource():
             pubParamName = 'SRC_FEATURE_1'
         else:
             pubParamName = 'DEST_FEATURE_1'
-        
+
         if len(nodeNameList) > 1:
             nodeNameFeatureClass = nodeNameList[1]
         else:
@@ -518,7 +712,7 @@ class FMEFeatureClass(object):
                           'parameter $({3}) = {2}'
                     msg = msg.format(nodeName, featureType, ppfc, pubParamName)
                     self.logger.warning(msg)
-                    
+
         return retVal
 
     def getFeatureClassPropertiesAsNameChild(self):
@@ -577,7 +771,7 @@ class FMEFeatureClass(object):
         if self.pubParams.hasPubParams(inputString):
             outStr = self.pubParams.deReference(inputString)
         return outStr
-    
+
     def __str__(self):
         '''
         string representation, joins dataset name and feature class name
@@ -585,7 +779,7 @@ class FMEFeatureClass(object):
         dataSet = self.getDataSet()
         fcName = self.getFeatureClassName()
         return '{0}/{1}'.format(dataSet, fcName)
-        
+
 
 class FMEDataSet(object):
 
@@ -609,7 +803,7 @@ class FMEDataSet(object):
 
     def getDataSetName(self):
         return self.datasetStruct[self.datasetNameField]
-    
+
     def getDataSetFormat(self):
         '''
         :return: The dataset format / type
@@ -625,24 +819,24 @@ class FMEDataSet(object):
 #     logger = logging.getLogger(__name__)
 #     logger.addHandler(logging.StreamHandler())
 #     logger.setLevel(logging.DEBUG)
-# 
+#
 #     pp = pprint.PrettyPrinter(indent=4)
-# 
+#
 #     inFMW = 'testFME.fmw'
 #     parsr = FMWParser(inFMW)
 #     parsr.separateFMWComponents()
 #     # parsr.readEverything()
-# 
+#
 #     # trans = parsr.getTransformers()
-# 
+#
 #     # dest = parsr.getDestDataSets()
 #     # pp.pprint(dest)
-# 
+#
 #     dest = parsr.getFeatureTypes()
 #     pp.pprint(dest)
 #     # dest = parsr.addPublishedParameters(dest)
 #     # pp.pprint(dest)
-# 
+#
 #     # pp  = pprint.PrettyPrinter(indent=4)
 #     # pp.pprint(dest[0])
 #     # print 'dest', dest[0].attrib
