@@ -7,24 +7,28 @@ When a FMW gets parsed it gets broken up into the various components
 described in this module.
 '''
 import logging
-import FMWParser
-import FMWParserConstants
-import re
 import pprint
+import re
 import warnings
 
-print 'FMWCOMPONENTS: ', __name__
+# import FMWParser
+import FMWParserConstants
 
+# pylint: disable=invalid-name
+# pylint: disable=logging-format-interpolation
 
 class FMEWorkspace(object):
     '''
     Provides an api to extract information about the workspace
     '''
 
-    def __init__(self, fmwFileName, transformerStruct, featureClassStruct, publishedParams):
+    def __init__(self, fmwFileName, transformerStruct, featureClassStruct,
+                 publishedParams):
         self.publishedParams = FMEPublishedParameters(publishedParams)
-        self.featureClasses = FMEFeatureClasses(featureClassStruct, self.publishedParams)
-        self.transformers = FMETransformers(transformerStruct, self.publishedParams)
+        self.featureClasses = FMEFeatureClasses(featureClassStruct,
+                                                self.publishedParams)
+        self.transformers = FMETransformers(transformerStruct,
+                                            self.publishedParams)
         self.fmwFileName = fmwFileName
 
     def getTreedJSON(self):
@@ -50,18 +54,25 @@ class FMEWorkspace(object):
 
         # info about workspace now exists ready to put into a unified structure
         newEntry = {'name': self.fmwFileName,
-                    'children': [featureClassesJson, transformersJson, pubParamsJson]}
+                    'children': [featureClassesJson, transformersJson,
+                                 pubParamsJson]}
         return newEntry
 
     def getFeatureClasses(self):
+        '''
+        :return: a feature classes object
+        '''
         return self.featureClasses
 
     def getTransformers(self):
+        '''
+        :return: transformers object
+        '''
         return self.transformers
 
     def getWorkspaceName(self):
         '''
-        returns the name of the FMW file that this object is wrapping
+        :returns: the name of the FMW file that this object is wrapping
         '''
         return self.fmwFileName
 
@@ -84,6 +95,7 @@ class FMEWorkspace(object):
 
         '''
         # TODO: write code to do this.
+        pass
 
 
 class FMETransformers(object):
@@ -97,9 +109,11 @@ class FMETransformers(object):
 
     def __init__(self, transformerStruct, publishedParams):
         self.logger = logging.getLogger(__name__)
+        self.transformerNameAttribute = 'TYPE'
         self.transfomerStruct = transformerStruct
         self.pubParams = publishedParams
-        self.logger.debug('transformer struct: {0}'.format(self.transfomerStruct))
+        self.logger.debug('transformer struct: {0}'.format(
+            self.transfomerStruct))
         self.transformerList = None
         self.parseTransformers()
 
@@ -122,12 +136,13 @@ class FMETransformers(object):
             curTransformerList = []
             for transformerAtrib in transformer.keys():
                 self.logger.debug('transformerAtrib: %s', transformerAtrib)
-                if transformerAtrib <> self.transformerNameAttribute:
+                if transformerAtrib != self.transformerNameAttribute:
                     node = {'name': transformerAtrib,
                             'value': transformer[transformerAtrib]}
                     curTransformerList.append(node)
 
-            newTransformer = {'name': transformer[self.transformerNameAttribute],
+            newTransformer = {'name':
+                              transformer[self.transformerNameAttribute],
                               'children': curTransformerList}
             transformerList.append(newTransformer)
         transformers = {'name': 'tranformers',
@@ -195,6 +210,7 @@ class TransfomerBase(object):
     def __init__(self, struct):
         self.logger = logging.getLogger(__name__)
         self.struct = struct
+        self.transformerNameAttribute = 'TYPE'
 
     def getType(self):
         transName = self.struct['TYPE']
@@ -249,8 +265,8 @@ class TransfomerBase(object):
                       transformer
 
         :param searchList: The first parameter would identify the record
-                     type, this attribute will identify a selection
-                     criteria for records of that type,
+                     recordType, this attribute will identify a selection
+                     criteria for records of that recordType,
 
                      This parameter is a list of lists, where each inner
                      list is made up of:
@@ -278,8 +294,8 @@ class TransfomerBase(object):
         retVal = False
         for elem in self.struct['CHILD']:
             matches = True
-            for type in types:
-                if type not in elem:
+            for recordType in types:
+                if recordType not in elem:
                     matches = False
             if matches:
                 # matches indicates all the element types requires are
@@ -287,13 +303,13 @@ class TransfomerBase(object):
                 for searchPair in searchList:
                     searchKey = searchPair[0]
                     searchValue = searchPair[1]
-                    
-                    if (searchKey in elem) and elem[searchKey] <> searchValue:
+
+                    if (searchKey in elem) and elem[searchKey] != searchValue:
                         matches = False
                         break
             if matches:
                 retVal = elem[returnKey]
-                break      
+                break
         return retVal
 
 
@@ -312,27 +328,68 @@ class CounterTransformer(TransfomerBase):
         gets added to it is a transformer name.  This method will return
         the name that was assigned to this transformer.
 
+        If you double click on a transformer, this method will return the
+        value that corresponds with 'Transformer Name'
+
         :return: the user supplied name for the transformer
         '''
-        return self._searchChildElems(['ELEMENTNAME'], [['PARM_NAME', 'XFORMER_NAME'], ['ELEMENTNAME', 'XFORM_PARM']], 'PARM_VALUE')
-        
-        
-#         retVal = False
-#         for elem in self.struct['CHILD']:
-#             if 'PARM_NAME' in elem:
-#                 if self.struct['PARM_NAME'] == 'XFORMER_NAME':
-#                     retVal = self.struct['PARM_VALUE']
-#                     break
-#         return retVal
+        return self._searchChildElems(['ELEMENTNAME'],
+                                      [['PARM_NAME', 'XFORMER_NAME'],
+                                       ['ELEMENTNAME', 'XFORM_PARM']],
+                                      'PARM_VALUE')
 
     def getCounterOutputAttributeName(self):
-#         retVal = False
-#         for elem in self.struct['CHILD']:
-#             if 'PARM_NAME' in elem:
-#                 if self.struct['PARM_NAME'] == 'XFORMER_NAME':
-#                     retVal = self.struct['PARM_VALUE']
-#                     break
-        return self._searchChildElems(['ELEMENTNAME'], [['PARM_NAME', 'CNT_ATTR'], ['ELEMENTNAME', 'XFORM_PARM']], 'PARM_VALUE')
+        '''
+        If you double click on a transformer, this method will return the
+        value that corresponds with 'Count Output Attribute'
+
+        :return: the output attribute that is going to be populated by the
+                 counter transformer
+
+        '''
+        return self._searchChildElems(['ELEMENTNAME'],
+                                      [['PARM_NAME', 'CNT_ATTR'],
+                                       ['ELEMENTNAME', 'XFORM_PARM']],
+                                      'PARM_VALUE')
+
+    def getCounterStartNumber(self):
+        '''
+        If you double click on a transformer, this method will return the
+        value that corresponds with 'Count Start'
+
+        :return: the number that the first iteration of the counter will
+                 start with
+        '''
+        return self._searchChildElems(['ELEMENTNAME'],
+                                      [['PARM_NAME', 'START'],
+                                       ['ELEMENTNAME', 'XFORM_PARM']],
+                                      'PARM_VALUE')
+
+    def getCounterName(self):
+        '''
+        If you double click on a transformer, this method will return the
+        value that corresponds with 'Counter Name'
+
+        :return: the name of the counter, not sure what this attribute does
+        '''
+        return self._searchChildElems(['ELEMENTNAME'],
+                                      [['PARM_NAME', 'DOMAIN'],
+                                       ['ELEMENTNAME', 'XFORM_PARM']],
+                                      'PARM_VALUE')
+
+    def getCounterScope(self):
+        '''
+        If you double click on a transformer, this method will return the
+        value that corresponds with 'Counter Scope'
+
+        :return: the scope of the counter, see fme help on 'counter'
+                 transformer for more info on this.
+
+        '''
+        return self._searchChildElems(['ELEMENTNAME'],
+                                      [['PARM_NAME', 'SCOPE'],
+                                       ['ELEMENTNAME', 'XFORM_PARM']],
+                                      'PARM_VALUE')
 
 
 class AttributeRenamerTransformer(TransfomerBase):
@@ -348,13 +405,15 @@ class AttributeRenamerTransformer(TransfomerBase):
                 if child['PARM_NAME'] == 'ATTR_LIST':
                     if child['PARM_VALUE']:
                         print 'fldmapstr', child['PARM_VALUE']
-                        fldMaps = self.__extractAttributeRenamerFieldMaps(child['PARM_VALUE'], transVersion)
+                        fldMaps = self.__extractAttributeRenamerFieldMaps(
+                            child['PARM_VALUE'], transVersion)
                         # fldMaps.append(fldMap)
         return fldMaps
 
     def __extractAttributeRenamerFieldMaps(self, fldMapStr, version):
         '''
-        :param fldMapStr: the field map string, form: oldfld, newfld, default, <repeat>...
+        :param fldMapStr: the field map string, form: oldfld, newfld,
+                          default, <repeat>...
         :param version: different versions of the attribute renamer will have
                         different fldmapstr formats.
                         version 1: uses pairs of values
@@ -378,14 +437,17 @@ class AttributeRenamerTransformer(TransfomerBase):
             if increment == 3:
                 defaultValue = fldMapList[cntr + 2]
             if defaultValue:
-                msg = 'Warning found a default value defined for the field {0}/{1} {2}'
+                msg = 'Warning found a default value defined for the field ' + \
+                      '{0}/{1} {2}'
                 msg = msg.format(oldValue, newValue, defaultValue)
                 self.logger.warning(msg)
                 warnings.warn(msg)
             fldMap.append([oldValue, newValue])
         if version not in ['1', '3', '2']:
             print fldMapStr
-            raise
+            msg = 'Unknown attribute renamer version, uncertain how to' + \
+                  ' parse attribute renamers of this type: {0}'
+            raise UnknownAttributeRenamerVersion(msg.format(version))
         return fldMap
 
 
@@ -397,12 +459,15 @@ class FMEPublishedParameters(object):
     def __init__(self, publishedParams):
         self.logger = logging.getLogger(__name__)
         self.publishedParams = publishedParams
-        self.hasPubParamRegex = re.compile(FMWParserConstants.PUBPARAM_ANY, re.IGNORECASE)
+        self.hasPubParamRegex = re.compile(
+            FMWParserConstants.PUBPARAM_ANY, re.IGNORECASE)
 
     def getJson(self):
         '''
-        paramDict[pubParamNameLst[0]] = { 'DEFAULT_VALUE': pubParam.attrib['DEFAULT_VALUE'],
-                                          'TYPE': ' '.join(pubParamNameLst[1:])}
+        paramDict[pubParamNameLst[0]] = { 'DEFAULT_VALUE':
+                                            pubParam.attrib['DEFAULT_VALUE'],
+                                          'TYPE':
+                                            ' '.join(pubParamNameLst[1:])}
         return paramDict
         '''
         struct = []
@@ -428,9 +493,10 @@ class FMEPublishedParameters(object):
 
     def getPublishedParameterValue(self, publishedParameterName):
         '''
-        :param publishedParameterName: the name of a published parameter variable
-                                       name.  Returns the value if the parameter
-                                       exists and None if it does not
+        :param publishedParameterName: the name of a published parameter
+                                       variable name.  Returns the value
+                                       if the parameter exists and None if
+                                       it does not
         '''
         retVal = None
         for param in self.publishedParams:
@@ -446,43 +512,49 @@ class FMEPublishedParameters(object):
         '''
         outStr = inStr
         if self.hasPubParams(inStr):
-            findParamRegex = re.compile(FMWParserConstants.PUBPARAM_SINGLE, re.IGNORECASE)
+            findParamRegex = re.compile(FMWParserConstants.PUBPARAM_SINGLE,
+                                        re.IGNORECASE)
             for pubParamRegex in findParamRegex.finditer(inStr):
                 paramName = inStr[pubParamRegex.start():pubParamRegex.end()]
                 if paramName in self.publishedParams:
-                    self.logger.debug("matched published parameter! %s", paramName)
-                    type = self.publishedParams[paramName]['TYPE']
-                    if type.lower() <> 'Python Script:' and \
-                       type.lower() <> 'Python Script':
-                        msg = "replacing the variable reference %s with its value %s"
-                        paramValue = self.publishedParams[paramName]['DEFAULT_VALUE']
+                    self.logger.debug("matched published parameter! %s",
+                                      paramName)
+                    paramType = self.publishedParams[paramName]['TYPE']
+                    if paramType.lower() != 'Python Script:' and \
+                       paramType.lower() != 'Python Script':
+                        msg = "replacing the variable reference %s with its" + \
+                              " value %s"
+                        paramValue = \
+                            self.publishedParams[paramName]['DEFAULT_VALUE']
                         self.logger.info(msg, paramName, paramValue)
                         outStr = outStr.replace(paramName, paramValue)
                     else:
-                        msg = "parameter %s is a python script so not replacing" + \
-                              'with its value'
+                        msg = "parameter %s is a python script so not " + \
+                              "replacing with its value"
                         self.logger.info(msg, paramName)
 
 
 class FMEFeatureClasses(object):
     '''
-    Parser will extract all the feature class records from the fmw that was read.
-    This class provides an API to help extract specific Feature classes from the
-    total number of feature classes defined in the FMW
+    Parser will extract all the feature class records from the fmw that was
+    read. This class provides an API to help extract specific Feature
+    classes from the total number of feature classes defined in the FMW
     '''
 
     def __init__(self, featureClassesStruct, publishedParams):
         self.logger = logging.getLogger(__name__)
-        self.logger.debug("featureClassesStruct: {0}".format(featureClassesStruct))
+        self.logger.debug("featureClassesStruct: {0}".format(
+            featureClassesStruct))
         self.featClassesList = []
         self.pubParms = publishedParams
-        self.logger.debug("publishedParams: {0}".format(publishedParams))
+        self.logger.debug("publishedParams: {0}".format(
+            publishedParams))
         self.addFeatureClasses(featureClassesStruct)
 
     def addFeatureClasses(self, featureClassesStruct):
         '''
-        Iterates through the featureClassesStruct which is a list of feature classes
-        and uses them to create feature class objects.
+        Iterates through the featureClassesStruct which is a list of
+        feature classes and uses them to create feature class objects.
         '''
         for featCls in featureClassesStruct:
             fc = FMEFeatureClass(featCls, self.pubParms)
@@ -504,8 +576,8 @@ class FMEFeatureClasses(object):
 
     def getJson(self):
         '''
-        returns a treed data structure for each feature class with the following
-        hierarchical structure:
+        returns a treed data structure for each feature class with the
+        following hierarchical structure:
         dataset
            feature class
                columns
@@ -548,15 +620,16 @@ class FMEFeatureClasses(object):
         # at the end of the loop they are written to
         # datasetDict, as the children.
         tmpDataSetDict = {}
-        self.logger.debug("exporting the feature classes to a data struct that" + \
-                          " can be jsonified")
+        self.logger.debug("exporting the feature classes to a data struct" +
+                          " that can be jsonified")
         for featCls in self.featClassesList:
             dataSet = featCls.getDataSet()
             datasetName = dataSet.getDataSetName()
             self.logger.debug("datasetName: %s", datasetName)
             if datasetName in tmpDataSetDict:
                 curDataSet = tmpDataSetDict[datasetName]
-                self.logger.debug("creating new dataset entry for: %s", datasetName)
+                self.logger.debug("creating new dataset entry for: %s",
+                                  datasetName)
             else:
                 dataSetProps = {'name': 'properties',
                                 'children': dataSet.getJson()}
@@ -611,8 +684,8 @@ class FMEFeatureClass(object):
     in the FMW. The parser also joins the column information and dataset
     information to the feature class record.
 
-    This class provides an API to the Feature class record WITH the joined column
-    information, hopefully making it easy to read.
+    This class provides an API to the Feature class record WITH the joined
+    column information, hopefully making it easy to read.
     '''
 
     def __init__(self, fc, publishedParameters):
@@ -659,15 +732,16 @@ class FMEFeatureClass(object):
                  SCHEMA_ATTRIBUTE_SOURCE="1"
              >
 
-        :param paramName : the name of the feature type property who's corresponding
-                           value you are trying to retrieve.
+        :param paramName : the name of the feature type property who's
+                           corresponding value you are trying to retrieve.
+
         '''
-        if not paramName in self.featClsStruct:
+        if paramName not in self.featClsStruct:
             msg = 'The parameter {0} does not exist as a property of this feature ' + \
                   'type.  Possible values include: {1}'
             msg = msg.format(paramName, self.featClsStruct.keys())
             self.logger.error(msg)
-            raise ValueError, msg
+            raise ValueError(msg)
         return self.featClsStruct[paramName]
 
     def getDataSet(self):
@@ -676,12 +750,13 @@ class FMEFeatureClass(object):
 
     def getFeatureClassName(self):
         '''
-        starts by getting the NODE_NAME described for the feature type.  This should
-        be the fully qualified name with the schema in front of it.  Then to make sure
-        this entry looks correct a bit of sanity checking takes place by comparing this
-        value with the value in the property FEATURE_TYPE_NAME, it the names align then
-        the assumption is that everything is ok.  If not then will get the name from
-        the published parameter DEST_FEATURE_1
+        starts by getting the NODE_NAME described for the feature type.
+        This should be the fully qualified name with the schema in front of
+        it.  Then to make sure this entry looks correct a bit of sanity
+        checking takes place by comparing this value with the value in the
+        property FEATURE_TYPE_NAME, it the names align then the assumption
+        is that everything is ok.  If not then will get the name from the
+        published parameter DEST_FEATURE_1
         '''
         nodeName = self.featClsStruct[self.fcNameField]
         featureType = self.featClsStruct[self.featureTypeName]
@@ -744,7 +819,7 @@ class FMEFeatureClass(object):
             columnName = column['ATTR_NAME']
             columnProperties = []
             for columnProperty in column.keys():
-                if columnProperty <> 'ATTR_NAME':
+                if columnProperty != 'ATTR_NAME':
                     propertyStruct = {'name': columnProperty,
                                       'value': column[columnProperty]}
                     columnProperties.append(propertyStruct)
@@ -763,8 +838,8 @@ class FMEFeatureClass(object):
 
     def subPubParams(self, inputString):
         '''
-        :param inputString: input strign that you want to have published parameters
-                            dereferenced if possible.
+        :param inputString: input strign that you want to have published
+                            parameters dereferenced if possible.
         :return: same string but variable references de-referenced
         '''
         outStr = inputString
@@ -793,7 +868,7 @@ class FMEDataSet(object):
         dataSetList = []
         for propertyName in self.datasetStruct:
             param = {'name': propertyName,
-                     'value': self.datasetStruct[propertyName] }
+                     'value': self.datasetStruct[propertyName]}
             dataSetList.append(param)
         # dataSetEntry = {'name': }
         return dataSetList
@@ -843,3 +918,14 @@ class FMEDataSet(object):
 #     # parsr.getSourceDataSets()
 #     # parsr.parseXML()
 #     # parsr.getPublishedParams()
+
+
+class UnknownAttributeRenamerVersion(Exception):
+    '''
+    Error / exception for non 200 responses.
+    '''
+
+    def __init__(self, message):
+
+        # Call the base class constructor with the parameters it needs
+        super(UnknownAttributeRenamerVersion, self).__init__(message)
