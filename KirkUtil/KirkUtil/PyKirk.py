@@ -18,6 +18,7 @@ import urlparse
 import requests
 
 from . import constants
+from pycparser.c_ast import Constant
 
 
 class BaseRestCall(object):
@@ -42,6 +43,160 @@ class BaseRestCall(object):
         if url[len(url) - 1] != '/':
             url = url + '/'
         return url
+
+
+class ParamMatch(object):
+    '''
+    utility class for comparing parameter sets provided as dictionaries
+    against a flexible database parameter schema.
+
+    flexible database parameter schema sees each parameter stored using
+    two columns, one that identifies the parameter type and the other
+    the actual value.
+
+    Contains methods that make it easy to take a dictionary and compare
+    against the flexible schema
+
+    :ivar paramSchema: an enumeration that describes the possible column
+                       names that can be stored in the flexible schema
+    :ivar schemaNameTemplate: a python format string where a single parameter
+                              can be used to identify the position of the
+                              element.  identifies the column name.
+    :ivar schemaValueTemplate: a python format string where a single parameter
+                               can be used to identify the position of the
+                               element, this template identifies the value
+    :ivar numberOfColumns: the number of columns represented in the flexible
+                           schema
+
+    so to provide some examples that will hopefully clarify how this works...
+
+    paramSchema: to an enumeration with the following values, the actual
+                  numeric values are unimportant, they are only requried
+                  to keep the enumeration unique.  Each of the entries in
+                  this enumeration identify a different column name that
+                  can be represented in the flexible schema
+
+       - transformerType = 1
+       - counterName = 2
+       - counterAttribute = 3
+       - counterScope = 4
+       - counterStartNumber = 5
+
+    schemaNameTemplate: identifies a string that will be used to identify
+                        the name of the column in the flexible schema,
+
+                        an example: ts{0}_name
+
+    schemaValueTemplate: identifies a string that will be used to identify
+                         the name of a value that corresponds with a column,
+
+                         an example: ts{0}_name
+
+
+    numberOfColumns: this tells us how many columns will be represented by
+                     this schema, thus if I used the examples above, and
+                     entered a value of 4 for this value, the class would
+                     expect a schema with the following columns:
+
+                     ts1_name
+                     ts1_value
+                     ts2_name
+                     ts2_value
+                     ts3_name
+                     ts3_value
+                     ts4_name
+                     ts4_value
+
+    So putting it all together it would expect the schema that it will be
+    comparing to have the ts*_name entreis to have one of the following values:
+       - transformerType
+       - counterName
+       - counterAttribute
+       - counterScope
+       - counterStartNumber
+
+    and the corresponding ts*_value would contain the corresponding values for each,
+    thus if
+       ts1_name = transformerType
+
+    then the entry
+       ts1_value
+    would contain the corresponding value for transformerType.
+    '''
+
+    def __init__(self, paramSchema, schemaNameTemplate, schemaValueTemplate, numberOfColumns):
+        self.paramSchema = paramSchema
+        self.schemaNameTemplate = schemaNameTemplate
+        self.schemaValueTemplate = schemaValueTemplate
+        self.numberOfColumns = numberOfColumns
+    
+    def dictionaryCompliesWithSchema(self, paramDictionary):
+        '''
+        This method will verify that the dictionary 'keys' are defined
+        in the paramSchema.
+        '''
+        retVal = True
+        for paramKey in paramDictionary:
+            if paramKey not in self.paramSchema.__members__:
+                retVal = False
+                break
+        return retVal
+    
+    def getMatchingSchema(self, flexibleSchema, paramDictionary, check=True):
+        '''
+        :param flexibleSchema: a list of dictionaries that contain the schema
+                               that was described in the constructor
+        :param paramDictionary: a dictionary that you would like to determine
+                                if its value are represented in the flexible
+                                schema list/struct
+        :param check: checks that all the keys in the supplied dictionary 
+                      are described in the enumeration 'paramSchema'
+        :return: None if the schema is not represented in the flexible schema
+                 If a match is found then returns that actual schema
+        '''
+        if check:
+            if not self.dictionaryCompliesWithSchema(paramDictionary):
+                msg = 'The input dictionary keys: {0} do not match the ' + \
+                      'expected schema: {1} contained in the property ' + \
+                      'paramSchema'
+                msg = msg.format(paramDictionary.keys(), self.paramSchema)
+                raise SchemaMisMatchError(msg)
+        
+        retVal = None
+        for schema in flexibleSchema:
+            matched = False
+            self.logger.debug("transformer id and name match")
+            for param_name in paramDictionary:
+                param_value = paramDictionary[param_name]
+                for paramCnt in range(1, self.numberOfColumns + 1):
+                    paramName_name = self.schemaNameTemplate.format(paramCnt)
+                    paramValue_name = self.schemaValueTemplate.format(paramCnt)
+
+                    paramName_value = schema[paramName_name]
+                    paramValue_value = schema[paramValue_name]
+
+                    if param_name == paramName_value and \
+                       param_value == paramValue_value:
+                        matched = True
+                        break
+                if not matched:
+                    # have iterated over all the parameters and have
+                    # not found a match
+                    msg = "cannot find a match for the parameter {0} " + \
+                          " = {1}, breaking out of loop"
+                    msg = msg.format(param_name, param_value)
+                    self.logger.debug(msg)
+                    break
+                else:
+                    msg = "matched the parameter {0} " + \
+                          " = {1}"
+                    msg = msg.format(param_name, param_value)
+                    self.logger.debug(msg)
+            if matched:
+                retVal = schema
+                self.logger.debug("schema that matched: %s", retVal)
+                break
+        return retVal
 
 
 class Kirk(BaseRestCall):
@@ -762,6 +917,23 @@ class Jobs(object):
                           jobid, respJson)
         return respJson
 
+    def getCounterTransfomers(self, jobid):
+        transformers = self.getJobTransformers()
+        transParam = constants.TransformerProperties
+        counterTransformers = []
+        for trans in transformers:
+            if trans[transParam.transformer_type] == constants.COUNTER_TRANSFORMER_NAME:
+                counterTransformers.append(trans)
+        return counterTransformers
+
+    def jobTransformerExists(self, jobid, transformerType, params):
+        transformers = self.getJobTransformers(jobid)
+        transProps = constants.TransformerProperties
+        for transformer in transformers:
+            if transformer[transProps.transformer_type.name] == transformerType:
+                # now compare the params
+                pass
+
 
 class APIError(Exception):
     '''
@@ -772,3 +944,14 @@ class APIError(Exception):
 
         # Call the base class constructor with the parameters it needs
         super(APIError, self).__init__(message)
+
+
+class SchemaMisMatchError(Exception):
+    '''
+    Error / exception for non 200 responses.
+    '''
+
+    def __init__(self, message):
+
+        # Call the base class constructor with the parameters it needs
+        super(SchemaMisMatchError, self).__init__(message)

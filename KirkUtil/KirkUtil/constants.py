@@ -65,6 +65,18 @@ class TransformerProperties(Enum):
     ts5_value = 13
     ts6_name = 14
     ts6_value = 15
+    
+class CounterTransformerMap(Enum):
+    '''
+    These are the standardized parameter names used for counter transformers
+    they are used to populate the various ts_name ts_value parameters 
+    in the Transformers end points.
+    '''
+    transformerType = 1
+    counterName = 2
+    counterAttribute = 3
+    counterScope = 4
+    counterStartNumber = 5
 
 
 class SourceTypes():
@@ -82,3 +94,6 @@ DELETE_NON_200_ERROR_MSG = r'DELETE request to {0} has a status_code of {1}, ret
 
 # file name templates
 FIELDMAP_CSV = 'fieldmaps_{0}.csv'
+
+# name for counter transformers types
+COUNTER_TRANSFORMER_NAME = 'counter'
