@@ -518,7 +518,17 @@ class FMWParser(object):
         # get the field maps defined by attributeRenamers
         wrkSpc = self.getFMEWorkspace()
         trans = wrkSpc.getTransformers()
-        fldMapAtrib = trans.getAttributeRenamerFieldMap()
+        
+        atribRenamerTransformers = trans.getAttributeRenamerTransformers()
+        fldMapAtrib = []
+        self.logger.debug("atribRenamerTransformers: %s", atribRenamerTransformers)
+        for atribRenamerTransformer in atribRenamerTransformers:
+            self.logger.debug('atribRenamerTransformer: %s', atribRenamerTransformer)
+            fldMap = atribRenamerTransformer.getAttributeRenamerFieldMap()
+            self.logger.debug("fieldmaps: %s", fldMap)
+            fldMapAtrib.append(fldMap) 
+        
+        #fldMapAtrib = trans.getAttributeRenamerFieldMap()
         
         if fldMaps and fldMapAtrib:
             msg = 'Field maps are defined using attributeRenamers as well as' + \

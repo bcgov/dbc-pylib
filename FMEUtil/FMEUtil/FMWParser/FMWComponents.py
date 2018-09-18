@@ -181,7 +181,10 @@ class FMETransformers(object):
     def hasAttributeRenamer(self):
         return self._hasInst(AttributeRenamerTransformer)
 
-    def getAttributeTransformers(self):
+    def getAttributeRenamerTransformers(self):
+        '''
+        Returns a list of AttributeRenamerTransformers
+        '''
         return self._getInst(AttributeRenamerTransformer)
 
     def hasCounter(self):
@@ -312,6 +315,12 @@ class TransfomerBase(object):
                 break
         return retVal
 
+    def __str__(self):
+        transName = self.getType()
+        self.logger.debug("default string value is the name of the" +
+                          'of the transformer: %s', transName)
+        return transName
+
 
 class CounterTransformer(TransfomerBase):
     '''
@@ -400,14 +409,16 @@ class AttributeRenamerTransformer(TransfomerBase):
     def getAttributeRenamerFieldMap(self):
         fldMaps = []
         transVersion = self.struct['VERSION']
+        self.logger.debug("child elems: %s", self.struct['CHILD'])
         for child in self.struct['CHILD']:
             if 'PARM_NAME' in child:
                 if child['PARM_NAME'] == 'ATTR_LIST':
                     if child['PARM_VALUE']:
-                        print 'fldmapstr', child['PARM_VALUE']
+                        self.logger.debug('fldmapstr: %s', child['PARM_VALUE'])
                         fldMaps = self.__extractAttributeRenamerFieldMaps(
                             child['PARM_VALUE'], transVersion)
                         # fldMaps.append(fldMap)
+        self.logger.debug("fldMaps: {0}".format(fldMaps))
         return fldMaps
 
     def __extractAttributeRenamerFieldMaps(self, fldMapStr, version):
@@ -423,6 +434,7 @@ class AttributeRenamerTransformer(TransfomerBase):
         '''
         fldMapList = fldMapStr.split(',')
         self.logger.debug("fldMapList: {0}".format(fldMapList))
+        self.logger.debug("version: %s",version )
         fldMap = []
         increment = 3
         if version == '1':

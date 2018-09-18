@@ -1,5 +1,6 @@
 from enum import Enum
 
+
 class KirkApiPaths():
     '''
     Used to declare the various end points defined in the kirk api
@@ -8,8 +9,9 @@ class KirkApiPaths():
     Sources = 'sources'
     Destinations = 'destinations'
     FieldMaps = 'fieldmaps'
-    
-    
+    Transformers = 'transformers'
+
+
 class JobProperties(Enum):
     date_modified = 1
     destField = 2
@@ -22,7 +24,8 @@ class JobProperties(Enum):
     cronStr = 9
     destTableName = 10
     destSchema = 11
-    
+
+
 class SourceProperties(Enum):
     sourceid = 1
     jobid = 2
@@ -33,8 +36,9 @@ class SourceProperties(Enum):
     sourceDBHost = 7
     sourceDBPort = 8
     sourceFilePath = 9
-    
-class FieldmapProps(Enum):
+
+
+class FieldmapProperties(Enum):
     fieldMapId = 1
     jobid = 2
     sourceColumnName = 3
@@ -43,13 +47,33 @@ class FieldmapProps(Enum):
     whoCreated = 6
     whenCreated = 7
     whoUpdated = 8
-    
+
+
+class TransformerProperties(Enum):
+    transformer_id = 1
+    jobid = 2
+    transformer_type = 3
+    ts1_name = 4
+    ts1_value = 5
+    ts2_name = 6
+    ts2_value = 7
+    ts3_name = 8
+    ts3_value = 9
+    ts4_name = 10
+    ts4_value = 11
+    ts5_name = 12
+    ts5_value = 13
+    ts6_name = 14
+    ts6_value = 15
+
+
 class SourceTypes():
     '''
-    Used to keep track of the different types of sources, initially there is only 
+    Used to keep track of the different types of sources, initially there is only
     going to be one
     '''
     file_geo_database = 'FGDB'
+
 
 # error messages for various api methods
 GET_NON_200_ERROR_MSG = r'GET request to {0} has a status_code of {1}, returned data is: {2}'

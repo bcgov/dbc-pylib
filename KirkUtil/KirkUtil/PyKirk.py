@@ -75,6 +75,10 @@ class Kirk(BaseRestCall):
         fldMaps = FieldMaps(self)
         return fldMaps
 
+    def getTransformers(self):
+        transformers = Transformers(self)
+        return transformers
+
 
 class FieldMaps(object):
     '''
@@ -135,7 +139,7 @@ class FieldMaps(object):
         :type destColumnName: str
         '''
 
-        fldmapProps = constants.FieldmapProps
+        fldmapProps = constants.FieldmapProperties
 
         struct = {fldmapProps.jobid.name: jobid,
                   fldmapProps.sourceColumnName.name: sourceColumnName,
@@ -166,7 +170,7 @@ class FieldMaps(object):
                  that matches the provided input parameters
         '''
         fldMaps = self.getFieldMaps()
-        fmProps = constants.FieldmapProps
+        fmProps = constants.FieldmapProperties
         retVal = False
         for fldmap in fldMaps:
             if fldmap[fmProps.jobid.name] == jobid and\
@@ -194,7 +198,7 @@ class FieldMaps(object):
         '''
 
         fldMaps = self.getFieldMaps()
-        fmProps = constants.FieldmapProps
+        fmProps = constants.FieldmapProperties
         retVal = None
         for fldmap in fldMaps:
             if fldmap[fmProps.jobid.name] == jobid and\
@@ -236,6 +240,160 @@ class FieldMaps(object):
         if not cancelUpdate:
             # refresh the fieldmaps after the delete operation has takens place
             self.getFieldMaps(force=True)
+
+        return resp
+
+
+class Transformers(object):
+    '''
+    interactions with the 'transformers' end point
+    '''
+
+    def __init__(self, baseObj):
+        self.logger = logging.getLogger(__name__)
+        self.baseObj = baseObj
+        transformerUrl = urlparse.urljoin(self.baseObj.restUrl,
+                                     constants.KirkApiPaths.Transformers, True)
+        self.transformerUrl = self.baseObj.fixUrlPath(transformerUrl)
+        self.logger.debug("transformer url: {0}".format(self.transformerUrl))
+        self.transformers = None
+
+    def getTransformers(self, force=None):
+        if self.transformers is not None and not force:
+            respJson = self.transformers
+        else:
+            response = requests.get(self.transformerUrl,
+                                    headers=self.baseObj.authHeader)
+            if response.status_code < 200 or response.status_code >= 300:
+                msg = constants.GET_NON_200_ERROR_MSG.format(
+                    self.transformerUrl,
+                    response.status_code, response.text)
+                raise APIError(msg)
+            respJson = response.json()
+            self.logger.debug("response json: %s", respJson)
+            # print 'response:', respJson
+            self.fldMaps = respJson
+        return respJson
+
+    def postTransformer(self, jobid, transformerType, parameters):
+        '''
+        :param jobid: the job id the transformer is related to
+        :param transformerType:  the type of transformer
+        :param parameters: This is a dictionary that is used to populate
+                           the ts#_name and ts#_value parameters
+
+        '''
+        transProps = constants.TransformerProperties
+
+        struct = {transProps.jobid.name: jobid,
+                  transProps.transformer_type.name: transformerType}
+        # restructure the dictionary into the key / value pairs used in
+        # the api
+        paramCnt = 1
+        for paramName in parameters:
+            propertyName_param = 'ts{0}_name'.format(paramCnt)
+            propertyName_value = paramName
+            propertyValue_param = 'ts{0}_value'.format(paramCnt)
+            propertyValue_value = parameters[paramName]
+            struct[propertyName_param] = propertyName_value
+            struct[propertyValue_param] = propertyValue_value
+            paramCnt += 1
+
+        self.logger.debug("struct: {0}".format(struct))
+        resp = requests.post(self.transformerUrl,
+                             data=struct,
+                             headers=self.baseObj.authHeader)
+        self.logger.debug("response from transformer post: %s", resp.json())
+        if resp.status_code < 200 or resp.status_code >= 300:
+            msg = constants.POST_NON_200_ERROR_MSG.format(self.transformerUrl,
+                                                          resp.status_code,
+                                                          resp.text)
+            raise APIError(msg)
+        self.getTransformers(force=True)
+        return resp.json()
+
+    def existsTransformer(self, jobid, transformerType, parameters):
+        '''
+        determines if there is a transformer that matches the information
+        provided, The parameters will match only what is provided, so
+        if you provide:
+
+           status = global
+        then it will only search for a transformer def that matches the
+        job id, transformer type and status=global.
+        '''
+        transId = self.getTransformerId(jobid, transformerType, parameters)
+        retVal = True
+        if transId is None:
+            retVal = False
+        return retVal
+
+    def getTransformerId(self, jobid, transformerType, parameters):
+        transformers = self.getTransformers()
+        props = constants.TransformerProperties
+        retVal = None
+        for transformer in transformers:
+            if transformer[props.jobid.name] == jobid and \
+               transformer[props.transformer_type.name] == transformerType:
+                # job id and type match
+                # now checking the properties
+                matched = False
+                self.logger.debug("transformer id and name match")
+                for param_name in parameters:
+                    param_value = parameters[param_name]
+                    for paramCnt in range(1, 7):
+                        paramName_name = 'ts{0}_name'.format(paramCnt)
+                        paramValue_name = 'ts{0}_value'.format(paramCnt)
+
+                        paramName_value = transformer[paramName_name]
+                        paramValue_value = transformer[paramValue_name]
+
+                        if param_name == paramName_value and \
+                           param_value == paramValue_value:
+                            matched = True
+                            break
+                    if not matched:
+                        # have iterated over all the parameters and have
+                        # not found a match
+                        msg = "cannot find a match for the parameter {0} " + \
+                              " = {1}, breaking out of loop"
+                        msg = msg.format(param_name, param_value)
+                        self.logger.debug(msg)
+                        break
+                    else:
+                        msg = "matched the parameter {0} " + \
+                              " = {1}"
+                        msg = msg.format(param_name, param_value)
+                        self.logger.debug(msg)
+                if matched:
+                    retVal = transformer[props.transformer_id.name]
+                    self.logger.debug("returning the id: %s", retVal)
+                    break
+        return retVal
+
+    def deleteTransformer(self, transformerid, cancelUpdate=False):
+        '''
+
+        :param transformerid:
+        :type transformerid:
+        '''
+
+        transformerUrl = urlparse.urljoin(self.transformerUrl,
+                                     str(transformerid), True)
+        transformerUrl = self.baseObj.fixUrlPath(transformerUrl)
+
+        resp = requests.delete(transformerUrl, headers=self.baseObj.authHeader)
+
+        if resp.status_code < 200 or resp.status_code >= 300:
+            msg = constants.DELETE_NON_200_ERROR_MSG.format(
+                transformerUrl, resp.status_code, resp.text)
+            raise APIError(msg)
+
+        self.logger.debug('response status code: %s', resp.status_code)
+
+        if not cancelUpdate:
+            # refresh the fieldmaps after the delete operation has takens place
+            self.getTransformers(force=True)
 
         return resp
 
@@ -587,6 +745,22 @@ class Jobs(object):
                 jobId = job[self.JobProperties.jobid.name]
                 break
         return jobId
+
+    def getJobTransformers(self, jobid):
+        jobUrl = urlparse.urljoin(self.jobsUrl, str(jobid), True)
+        jobUrl = self.baseObj.fixUrlPath(jobUrl)
+        jobUrl = urlparse.urljoin(jobUrl, constants.KirkApiPaths.Transformers, True)
+        jobUrl = self.baseObj.fixUrlPath(jobUrl)
+        response = requests.get(jobUrl, headers=self.baseObj.authHeader)
+        self.logger.debug("response Status: %s", response.status_code)
+        if response.status_code < 200 or response.status_code >= 300:
+            msg = constants.GET_NON_200_ERROR_MSG.format(
+                self.jobsUrl, response.status_code, response.text)
+            raise APIError(msg)
+        respJson = response.json()
+        self.logger.debug("transformers for job %s response json: %s",
+                          jobid, respJson)
+        return respJson
 
 
 class APIError(Exception):
