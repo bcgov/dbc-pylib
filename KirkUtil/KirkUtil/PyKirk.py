@@ -125,11 +125,12 @@ class ParamMatch(object):
     '''
 
     def __init__(self, paramSchema, schemaNameTemplate, schemaValueTemplate, numberOfColumns):
+        self.logger = logging.getLogger(__name__)
         self.paramSchema = paramSchema
         self.schemaNameTemplate = schemaNameTemplate
         self.schemaValueTemplate = schemaValueTemplate
         self.numberOfColumns = numberOfColumns
-    
+
     def dictionaryCompliesWithSchema(self, paramDictionary):
         '''
         This method will verify that the dictionary 'keys' are defined
@@ -141,7 +142,7 @@ class ParamMatch(object):
                 retVal = False
                 break
         return retVal
-    
+
     def getMatchingSchema(self, flexibleSchema, paramDictionary, check=True):
         '''
         :param flexibleSchema: a list of dictionaries that contain the schema
@@ -149,7 +150,7 @@ class ParamMatch(object):
         :param paramDictionary: a dictionary that you would like to determine
                                 if its value are represented in the flexible
                                 schema list/struct
-        :param check: checks that all the keys in the supplied dictionary 
+        :param check: checks that all the keys in the supplied dictionary
                       are described in the enumeration 'paramSchema'
         :return: None if the schema is not represented in the flexible schema
                  If a match is found then returns that actual schema
@@ -161,7 +162,7 @@ class ParamMatch(object):
                       'paramSchema'
                 msg = msg.format(paramDictionary.keys(), self.paramSchema)
                 raise SchemaMisMatchError(msg)
-        
+
         retVal = None
         for schema in flexibleSchema:
             matched = False
@@ -484,6 +485,7 @@ class Transformers(object):
         return retVal
 
     def getTransformerId(self, jobid, transformerType, parameters):
+
         transformers = self.getTransformers()
         props = constants.TransformerProperties
         retVal = None
@@ -496,13 +498,22 @@ class Transformers(object):
                 self.logger.debug("transformer id and name match")
                 for param_name in parameters:
                     param_value = parameters[param_name]
+                    self.logger.debug("param_name: %s", param_name)
+                    self.logger.debug("param_value: %s", param_value)
                     for paramCnt in range(1, 7):
                         paramName_name = 'ts{0}_name'.format(paramCnt)
                         paramValue_name = 'ts{0}_value'.format(paramCnt)
 
                         paramName_value = transformer[paramName_name]
                         paramValue_value = transformer[paramValue_name]
-
+                        self.logger.debug("name: {0} = {1}".format(paramName_value, paramValue_value))
+                        self.logger.debug("{0} {1}".format(type(param_value), type(paramValue_value)))
+                        if type(param_value) != type(paramValue_value):
+                            self.logger.warning("type mismatch {0} / {1}".format(type(param_value), 
+                                                                                 type(paramValue_value))) 
+                            self.logger.info("converting both to unicode")
+                            param_value = unicode(param_value)
+                            paramValue_value = unicode(paramValue_value)
                         if param_name == paramName_value and \
                            param_value == paramValue_value:
                             matched = True
@@ -918,22 +929,65 @@ class Jobs(object):
         return respJson
 
     def getCounterTransfomers(self, jobid):
-        transformers = self.getJobTransformers()
+        transformers = self.getJobTransformers(jobid)
         transParam = constants.TransformerProperties
         counterTransformers = []
+        paramMatch = ParamMatch(constants.CounterTransformerMap,
+                                constants.TRANSFORMER_NAME_TMPLT,
+                                constants.TRANSFORMER_VALUE_TMPLT,
+                                constants.TRANSFORMERS_DYNAMICFIELDS_LENGTH)
+
         for trans in transformers:
-            if trans[transParam.transformer_type] == constants.COUNTER_TRANSFORMER_NAME:
+            if trans[transParam.transformer_type] == constants.TransformerTypes.counter.name:
                 counterTransformers.append(trans)
         return counterTransformers
 
     def jobTransformerExists(self, jobid, transformerType, params):
+        '''
+        Determines if a transformer with the parameters defined in 'params'
+        of the type defined in 'transformerType' exists.
+        
+        :param jobid: the job id who's transformers you wish to query
+        :type jobid: int/str
+        :param transformerType: A transformer type defined in 
+                                constants.TransformerTypes
+        :type transformerType: PyKirk.constants.TransformerTypes
+        :param params: a dictionary that represents a set of transformer
+                       dynamic properties.  Will search the transformers
+                       associated with the job/transformerType that match
+                       the paramers defined here.
+        :type params: dict
+        '''
+        exists = False
+        # verify that tranformer type is defined
+        if transformerType not in constants.TransformerTypes.__members__:
+            msg = 'received a transformer type: {0}, Not a valid value, ' + \
+                  'possible values defined in PyKirk.constants.TransformerTypes ' + \
+                  'which are: {1}'
+            msg = msg.format(transformerType, 
+                             constants.JobProperties.__members__.keys())  # @UndefinedVariable
+            raise ValueError(msg)
+        
+        # all the transformer associated with the job
         transformers = self.getJobTransformers(jobid)
+        
+        # filter the jobs that match 'transformerType' 
         transProps = constants.TransformerProperties
+        jobTransformersList = []
         for transformer in transformers:
             if transformer[transProps.transformer_type.name] == transformerType:
                 # now compare the params
-                pass
-
+                jobTransformersList.append(transformer)
+        
+        if jobTransformersList:
+            paramMatch = ParamMatch(constants.CounterTransformerMap,
+                                    constants.TRANSFORMER_NAME_TMPLT,
+                                    constants.TRANSFORMER_VALUE_TMPLT,
+                                    constants.TRANSFORMERS_DYNAMICFIELDS_LENGTH)
+            
+            firstMatch = paramMatch.getMatchingSchema(jobTransformersList, params)
+            exists = True
+        return exists
 
 class APIError(Exception):
     '''

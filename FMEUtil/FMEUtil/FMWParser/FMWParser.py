@@ -58,6 +58,9 @@ class FMWParser(object):
         self.xmlObj = None
         self.tclObj = None
         self.fmwReader = None
+        if not os.path.exists(fmwFile):
+            msg = 'FMW File {0} does not exist'.format(self.FMWFile)
+            raise IOError(msg)
 
     def separateFMWComponents(self):
         '''
