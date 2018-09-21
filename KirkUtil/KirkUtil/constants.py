@@ -25,6 +25,7 @@ class JobProperties(Enum):
     destTableName = 10
     destSchema = 11
 
+
 class SourceProperties(Enum):
     sourceid = 1
     jobid = 2
@@ -36,6 +37,7 @@ class SourceProperties(Enum):
     sourceDBPort = 8
     sourceFilePath = 9
 
+
 class FieldmapProperties(Enum):
     fieldMapId = 1
     jobid = 2
@@ -45,6 +47,7 @@ class FieldmapProperties(Enum):
     whoCreated = 6
     whenCreated = 7
     whoUpdated = 8
+
 
 class TransformerProperties(Enum):
     transformer_id = 1
@@ -62,13 +65,15 @@ class TransformerProperties(Enum):
     ts5_value = 13
     ts6_name = 14
     ts6_value = 15
-    
+
+
 class TransformerTypes(Enum):
     '''
     supported transformer types
     '''
     counter = 1
-    
+
+
 class TransformerCoreAttributes(Enum):
     '''
     All transformers will have these attributes
@@ -76,11 +81,12 @@ class TransformerCoreAttributes(Enum):
     transformer_id = 1
     jobid = 2
     transformer_type = 3
-    
+
+
 class CounterTransformerMap(Enum):
     '''
     These are the dynamic parameter names used for counter transformers
-    they are used to populate the various ts_name ts_value parameters 
+    they are used to populate the various ts_name ts_value parameters
     in the Transformers end points.
     '''
     counterName = 1
@@ -91,23 +97,26 @@ class CounterTransformerMap(Enum):
 
 class SourceTypes():
     '''
-    Used to keep track of the different types of sources, initially there is only
-    going to be one
+    Used to keep track of the different types of sources, initially there
+    is only going to be one
     '''
     file_geo_database = 'FGDB'
 
 
 # error messages for various api methods
-GET_NON_200_ERROR_MSG = r'GET request to {0} has a status_code of {1}, returned data is: {2}'
-POST_NON_200_ERROR_MSG = r'POST request to {0} has a status_code of {1}, returned data is: {2}'
-DELETE_NON_200_ERROR_MSG = r'DELETE request to {0} has a status_code of {1}, returned data is: {2}'
+GET_NON_200_ERROR_MSG = \
+    r'GET request to {0} has a status_code of {1}, returned data is: {2}'
+POST_NON_200_ERROR_MSG = \
+    r'POST request to {0} has a status_code of {1}, returned data is: {2}'
+DELETE_NON_200_ERROR_MSG = \
+    r'DELETE request to {0} has a status_code of {1}, returned data is: {2}'
 
 # file name templates
 FIELDMAP_CSV = 'fieldmaps_{0}.csv'
 
 # name for counter transformers types
 # replace with the enumerated value in TransformerTypes
-#COUNTER_TRANSFORMER_NAME = 'counter'
+# COUNTER_TRANSFORMER_NAME = 'counter'
 
 TRANSFORMER_NAME_TMPLT = 'ts{0}_name'
 TRANSFORMER_VALUE_TMPLT = 'ts{0}_value'
