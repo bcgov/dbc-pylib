@@ -18,8 +18,6 @@ import urlparse
 import requests
 
 from . import constants
-from pycparser.c_ast import Constant
-
 
 class BaseRestCall(object):
     '''
@@ -932,13 +930,9 @@ class Jobs(object):
         transformers = self.getJobTransformers(jobid)
         transParam = constants.TransformerProperties
         counterTransformers = []
-        paramMatch = ParamMatch(constants.CounterTransformerMap,
-                                constants.TRANSFORMER_NAME_TMPLT,
-                                constants.TRANSFORMER_VALUE_TMPLT,
-                                constants.TRANSFORMERS_DYNAMICFIELDS_LENGTH)
 
         for trans in transformers:
-            if trans[transParam.transformer_type] == constants.TransformerTypes.counter.name:
+            if trans[transParam.transformer_type.name] == constants.TransformerTypes.counter.name:
                 counterTransformers.append(trans)
         return counterTransformers
 
