@@ -1089,7 +1089,7 @@ class Workspaces(object):
     def exists(self, wrkSpaceName):
         '''
         :param wrkSpaceName: Name of the workspace that is to be downloaded
-        tests to see if a workspace with a given name exists
+        tests_DEPRECATED_SEE_README to see if a workspace with a given name exists
         '''
         workSpaceNames = self.getWorkspaceNames()
         retVal = False
