@@ -155,3 +155,19 @@ def test_pubParam_subPubParams(FMWParserMockedPubParams):
     inputStr = '$(DEST_SCHEMA).$(DEST_FEATURE_1)'
     retStr = pubParams.deReference(inputStr)
     print 'retStr', retStr
+
+
+def test_getDataSetProjection(FMWParserInstance):
+    FMEWrkspc = FMWParserInstance.getFMEWorkspace()
+    featClses = FMEWrkspc.getFeatureClasses()
+    expectedData = {'\\\\data.bcgov\\data_staging_ro\\BCGW\\administrative_boundaries\\GBA_Administrative_Boundaries.gdb': '', 'idwprod1.bcgov': 'BCALB-83'}
+    returnedData = {}
+    for featCls in featClses:
+        dataSet = featCls.getDataSet()
+        proj = dataSet.getProjection()
+        dataSetName = dataSet.getDataSetName()
+        logging.info("dataset/projection: %s / %s", dataSetName, proj)
+        returnedData[dataSetName] = proj
+    logging.info("expected: %s", expectedData)
+    logging.info("returnedData: %s", returnedData)
+    assert returnedData == expectedData
