@@ -64,9 +64,10 @@ class PMP(object):
         self.baseUrl = configDict[self.const.connectKey_baseurl]
         self.restDir = configDict[self.const.connectKey_restdir]
         # make sure the last character on the rest dir is /
-        if self.restDir[-1] <> '/':
+        if self.restDir[-1] != '/':
             self.restDir = self.restDir + '/'
-        print 'self.restDir', self.restDir, self.restDir[-1]
+        self.logger.debug("self.restDir: %s", self.restDir)
+        self.logger.debug("last char in rest dir: %s", self.restDir[-1])
 
     def getTokenDict(self):
         '''
@@ -89,35 +90,38 @@ class PMP(object):
             # stop
             msg = "unsuccessful connection status code: %s", r.status_code
             self.logger.error(msg)
-            raise PMPCommunicationProblem, msg
+            raise PMPCommunicationProblem(msg)
 
         resources = r.json()
         resourcObjects = None
         resOpKey = self.const.resourcekeys_operation
         resDets = self.const.resourcekeys_Details
 
-        if (resources.has_key(resOpKey)) and \
-            resources[resOpKey].has_key(resDets):
+        if (resOpKey in resources) and resDets in resources[resOpKey]:
+
             resourcObjects = resources[resOpKey][resDets]
-            # self.logger.debug("returned resource objects: " + str(resourcObjects))
+            # self.logger.debug("returned resource objects: " + \
+            # str(resourcObjects))
         else:
             msg = 'unable to read resources from PMP. Probably a token ' + \
                   'problems!  PMP message {0}'
             msg = msg.format(resources)
             self.logger.error(msg)
-            raise PMPCommunicationProblem, msg
-            # TODO: might consider raising an error here.
+            raise PMPCommunicationProblem(msg)
         return resourcObjects
 
     def getResourceId(self, resourceName):
         '''
-        pmp organizes everything by numeric ids. This method takes a resource name
-        and retrieves the corresponding resource id from pmp.
-        :param resourceName: The name of the resource who's id you want to retrieve.
-        :return: the resource id corresponding to the resourceName
+        pmp organizes everything by numeric ids. This method takes a
+        resource name and retrieves the corresponding resource id from pmp.
+
+        :param resourceName: The name of the resource who's id you want to
+                             retrieve.
+        :return: the resource id corresponding to the
+                 resourceName
         '''
         resourceId = None
-        self.logger.debug("getting the resource id for the resource name:" + \
+        self.logger.debug("getting the resource id for the resource name:" +
                           str(resourceName))
         resources = self.getResources()
         iterResourceNames = []
@@ -128,14 +132,14 @@ class PMP(object):
                resourceName.upper():
                 resourceId = resource[self.const.resourceKeys_resourceID]
                 break
-        self.logger.debug("resource id for (" + str(resourceName) + ') is (' + \
+        self.logger.debug("resource id for (" + str(resourceName) + ') is (' +
                           str(resourceId) + ')')
         if not resourceId:
             msg = 'Unable to find the resource: {0}.  Resources that are ' + \
                   'currently visible: {1}'
             msg = msg.format(resourceName, ', '.join(iterResourceNames))
             self.logger.error(msg)
-            raise ResourceNotFound, msg
+            raise ResourceNotFound(msg)
         return resourceId
 
     def getAccounts(self, resourceName):
@@ -182,7 +186,7 @@ class PMP(object):
          u'ACCOUNT NAME': u'app_pmp',
          u'AUTOLOGONLIST': [],
          u'AUTOLOGONSTATUS':
-         u'User is not allowed to automatically logging in to remote systems in mobile'},
+         u'User is not allowed to automatically logging in to remote systems in mobile'},  # @IgnorePep8
         {u'PASSWORD STATUS': u'****', u'ACCOUNT ID': u'123',
         u'PASSWDID': u'123', u'ISREASONREQUIRED': u'false',
          u'ISFAVPASS': u'false', u'ACCOUNT NAME': u'AnAccountName',
@@ -193,11 +197,12 @@ class PMP(object):
          u'ISFAVPASS': u'false', u'ACCOUNT NAME': u'AnAcocountName',
          u'AUTOLOGONLIST': [],
          u'AUTOLOGONSTATUS':
-         u'User is not allowed to automatically logging in to remote systems in mobile'}
+         u'User is not allowed to automatically logging in to remote systems in mobile'}  # @IgnorePep8
          ...
 
         '''
-        print 'resourceName is:', resourceName
+        self.logger.debug("resourceName is: %s", resourceName)
+        # print 'resourceName is:', resourceName
         resId = self.getResourceId(resourceName)
         accnts = self.getAccountsForResourceID(resId)
         self.logger.debug("retrieved %s accounts for the resource %s",
@@ -254,10 +259,11 @@ class PMP(object):
                accntName.lower().strip():
                 accntId = accnt[self.const.resourceKeys_accountID]
                 break
-        self.logger.debug("Account id for the account name (" + \
+        self.logger.debug("Account id for the account name (" +
                           "(" + str(accntName) + ") is (" + str(accntId) + ')')
         if not accntId:
-            msg = 'unable to find an account with the name: {0} in the resource id {1}'
+            msg = 'unable to find an account with the name: {0} in the ' + \
+                  'resource id {1}'
             msg = msg.format(accntName, resourceId)
             self.logger.warning(msg)
         return accntId
@@ -274,7 +280,7 @@ class PMP(object):
                   'name {0} using the token {1}'
             msg = msg.format(resourceName, self.token)
             self.logger.error(msg)
-            raise ValueError, msg
+            raise ValueError(msg)
         self.logger.debug("getting account ids")
         accntId = self.getAccountId(accntName, resId)
         psswd = None
@@ -287,7 +293,7 @@ class PMP(object):
                       'access this password'
                 msg = msg.format(resourceName, accntName, psswd, self.token)
                 self.logger.error(msg)
-                raise ValueError, msg
+                raise ValueError(msg)
         else:
             msg = 'unable to find the account: {0} in the resource: {1}'
             msg = msg.format(accntName, resourceName)
@@ -310,7 +316,7 @@ class PMP(object):
                   ' {0}. Returned resource id {1} using the token {2}'
             msg = msg.format(resourceName, resId, self.token)
             self.logger.error(msg)
-            raise ValueError, msg
+            raise ValueError(msg)
         accntId = self.getAccountId(accntName, resId)
         if not accntId:
             msg = 'unable to find the account: {0} in the resource: {1}'
@@ -362,28 +368,32 @@ class PMP(object):
               - bare usernames are compared for a match, ie just the user
                 name supplied as an arg and just the user name in the iteration
                 of accounts for the resourceName
-              - if usernames match then retrieve the url from the "Account Notes"
-                if the url matches the received apiUrl then get the password and
-                return it for that account.
+              - if usernames match then retrieve the url from the
+                  "Account Notes"
+                if the url matches the received apiUrl then get the password
+                and return it for that account.
               - if the the "account notes" url does not match and there was a
-                url appended to the end of the username example user@http://blah
+                url appended to the end of the username example:
+                user@http://blah
                 then that url is compared with the supplied url.
                 if they match then get th password.
 
-              - if neither of the url's match then raises and error saying there
-                is no account for the username url combination
+              - if neither of the url's match then raises and error saying
+                there is no account for the username url combination
 
         :param  accountName: The name account name who's password we want
         :type accountName: str
 
-        :param  apiUrl: The url to the rest api that corresponds with the username.
+        :param  apiUrl: The url to the rest api that corresponds with the
+                        username.
         :type apiUrl: str
 
-        :param  resourceName: The name of the resource in pmp who's password we are
-                              trying to retrieve.
+        :param  resourceName: The name of the resource in pmp who's password
+                              we are trying to retrieve.
         :type resourceName: str
         '''
-        self.logger.debug("params are %s, %s, %s", accountName, apiUrl, resourceName)
+        self.logger.debug("params are %s, %s, %s", accountName,
+                          apiUrl, resourceName)
 
         parsed_uri = urlparse.urlparse(apiUrl)
         apiUrl = parsed_uri.netloc
@@ -411,17 +421,20 @@ class PMP(object):
         # start by getting all the accounts for the userid
         accnts = self.getAccountsForResourceID(resId)
         accntsRetrieved = []
-        # will be where the extracted account name is stored assuming it is found
+        # will be where the extracted account name is stored assuming it is
+        # found
         extractedAccntId = None
         self.logger.debug("found (%s) accounts in the resource", len(accnts))
         for accnt in accnts:
             # splitting up the received account name and url in case
             # the version stored in pmp is username@url
             self.logger.debug("current Account name: %s, searching for: %s",
-                              accnt[self.const.resourceKeys_accountName], justUser)
+                              accnt[self.const.resourceKeys_accountName],
+                              justUser)
             accntsRetrieved.append(accnt[self.const.resourceKeys_accountName])
             if '@' in accnt[self.const.resourceKeys_accountName]:
-                currAccntName, currAccntUrl = accnt[self.const.resourceKeys_accountName].split('@')
+                currAccntName, currAccntUrl = \
+                    accnt[self.const.resourceKeys_accountName].split('@')
                 parsed_uri = urlparse.urlparse(currAccntUrl)
                 currAccntUrl = parsed_uri.netloc
                 self.logger.debug("currAccntUrl: %s", currAccntUrl)
@@ -443,7 +456,7 @@ class PMP(object):
                 self.logger.debug("Server from Details: %s", urlFromDetails)
 
                 # now if the urlFromDetails matches apiUrl provided as an arg
-                    # then assume this is the account
+                # then assume this is the account
                 if urlFromDetails.lower().strip() == apiUrl.lower().strip():
                     extractedAccntId = currAccntId
                     break
@@ -456,11 +469,13 @@ class PMP(object):
                         break
         if not extractedAccntId:
             self.logger.debug("account name: %s", accountName)
-            msg = 'unable to find an account that matches the account name: {0} and ' + \
-                  'the resource name {1}, accounts that are visible: {2}'
-            msg = msg.format(accountName, resourceName, ', '.join(accntsRetrieved))
+            msg = 'unable to find an account that matches the account name:' + \
+                  ' {0} and the resource name {1}, accounts that are ' + \
+                  'visible: {2}'
+            msg = msg.format(accountName, resourceName,
+                             ', '.join(accntsRetrieved))
             self.logger.error(msg)
-            raise AccountNotFound, msg
+            raise AccountNotFound(msg)
 
         return self.getAccountPasswordWithAccountId(extractedAccntId, resId)
 
@@ -504,11 +519,12 @@ class PMP(object):
             u'PASSWDID': u'1234',
             }, u'name': u'GET RESOURCE ACCOUNT DETAILS',
                 u'result': {u'status': u'Success',
-                            u'message': u'Account details fetched successfully'}}}
+                            u'message': u'Account details fetched successfully'}}}  # @IgnorePep8
 
 
         '''
-        server = self.getCustomFieldLabel(struct, self.const.customFieldLblServer)
+        server = self.getCustomFieldLabel(struct,
+                                          self.const.customFieldLblServer)
         return server
 
     def getCustomFieldLabel(self, struct, labelName2Get):
@@ -517,10 +533,10 @@ class PMP(object):
         entry for a specific custom field, and if it exists then returns
         the value associated with it.  If it doesn't then just returns
         null
-        :param struct: The python data structure that should be searched to find
-                       the custom parameter in.
-        :param labelName2Get: the label or name of the custom property that is to
-                              be extracted.
+        :param struct: The python data structure that should be searched to
+                       find the custom parameter in.
+        :param labelName2Get: the label or name of the custom property that
+                              is to be extracted.
         '''
         retVal = None
         if self.const.resourcekeys_operation in struct:
@@ -528,11 +544,14 @@ class PMP(object):
             if self.const.resourcekeys_Details in operation:
                 details = operation[self.const.resourcekeys_Details]
                 if self.const.resourceKeys_customFields in details:
-                    customFields = details[self.const.resourceKeys_customFields]
+                    customFields = \
+                        details[self.const.resourceKeys_customFields]
                     for fld in customFields:
-                        fldLabel = fld[self.const.resourceKeys_customFieldLabel]
+                        fldLabel = \
+                            fld[self.const.resourceKeys_customFieldLabel]
                         if fldLabel.lower() == labelName2Get.lower():
-                            retVal = fld[self.const.resourceKeys_customFieldValue]
+                            retVal = \
+                                fld[self.const.resourceKeys_customFieldValue]
                             break
         if not retVal:
             msg = 'Unable to find the custom field label: %s'
@@ -555,9 +574,14 @@ class PMP(object):
         opkey = self.const.resourcekeys_operation
         reskey = self.const.resourcekeys_Details
         resdesc = self.const.resourceKeys_description
-        if ((struct.has_key(self.const.resourcekeys_operation)) and \
-             struct[opkey].has_key(reskey)) and \
-             struct[opkey][reskey].has_key(resdesc):
+        if ((self.const.resourcekeys_operation in struct) and
+            reskey in struct[opkey]) and \
+                resdesc in struct[opkey][reskey]:
+            # leaving this here in case the logic above was translated
+            # incorrectly
+            # if ((struct.has_key(self.const.resourcekeys_operation)) and \
+            #      struct[opkey].has_key(reskey)) and \
+            #      struct[opkey][reskey].has_key(resdesc):
 
             urlFromDetails = struct[opkey][reskey][resdesc]
             self.logger.debug("url details: %s", urlFromDetails)
@@ -571,9 +595,10 @@ class PMP(object):
         '''
         Given a PMP account id, and resource id, this method will extract the
         password from PMP.
-        :param accntId: The account id (numeric) for the password to be retrieved
-        :param resourceId: the resource id (numeric) for the password that is to
-                           be retireved
+        :param accntId: The account id (numeric) for the password to be
+                        retrieved
+        :param resourceId: the resource id (numeric) for the password that
+                           is to be retrieved
         '''
         url = 'https://' + self.baseUrl + self.restDir + \
               'resources/' + str(resourceId) + '/accounts/' + \
@@ -588,12 +613,12 @@ class PMP(object):
         psswd = passwdStruct[opKey][detKey][pssedKey]
 
         if psswd.upper() == '[Request]'.upper():
-            msg = 'PMP response for the resource ID ({0}) and account ID ({1}) was {2}. ' + \
-                  'which indicates the token used ({3}) does not have permissions to ' + \
-                  'access this password'
+            msg = 'PMP response for the resource ID ({0}) and account ID ' + \
+                  '({1}) was {2}. which indicates the token used ({3}) ' + \
+                  'does not have permissions to access this password'
             msg = msg.format(resourceId, accntId, psswd, self.token)
             self.logger.error(msg)
-            raise ValueError, msg
+            raise ValueError(msg)
         return psswd
 
     def getExtDBPassword(self, accountName, serviceName, resourceName):
@@ -640,8 +665,8 @@ class PMP(object):
                     stringList = server.split('.')
                     server = stringList[0].strip()
                     curAccnt = accntTemplateStr.format(curAccnt, server)
-                    if curAccnt == iterAccntName or \
-                      curAccnt.upper() == iterAccntName.upper():
+                    if (curAccnt == iterAccntName or
+                      curAccnt.upper() == iterAccntName.upper()):  # @IgnorePep8
                         accntid = accntDict['ACCOUNT ID']
                         break
         if accntid:
@@ -676,15 +701,18 @@ class ExternalAccountName(object):
         pieces of information stored in it.
         '''
         if not self.username:
-            if not self.const.usernameDelimiter in self.pmpAccntName:
+            if self.const.usernameDelimiter not in self.pmpAccntName:
                 msg = 'the account name delimiter "{0}" was not found in ' + \
                       'the account name: {1}, unable to parse out other ' + \
                       'parameters like servicename, host, and port'
-                msg = msg.format(self.const.usernameDelimiter, self.pmpAccntName)
+                msg = msg.format(self.const.usernameDelimiter,
+                                 self.pmpAccntName)
                 self.logger.warning(msg)
             else:
-                self.username, remainderStr = self.pmpAccntName.split(self.const.usernameDelimiter)
-                remainderList = remainderStr.split(self.const.dbParamsDelimiter)
+                self.username, remainderStr = \
+                    self.pmpAccntName.split(self.const.usernameDelimiter)
+                remainderList = remainderStr.split(
+                    self.const.dbParamsDelimiter)
                 self.logger.debug('username: %s', self.username)
                 self.logger.debug('remainderList: %s', remainderList)
                 # SQLSERVER:ssdbname:dbhost.com:1005 DATABCREPLICATION
@@ -738,7 +766,8 @@ class ExternalAccountName(object):
         return 'myserver'
         '''
         paramList = param.split('.')
-        self.logger.debug("removing domain from %s, returning %s", param, paramList[0])
+        self.logger.debug("removing domain from %s, returning %s",
+                          param, paramList[0])
         return paramList[0]
 
     def getUserName(self):

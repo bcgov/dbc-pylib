@@ -603,7 +603,7 @@ class Sources(object):
                 jobSrcs.append(src)
         return jobSrcs
 
-    def postFileSources(self, jobid, sourceTable, sourceDataSet,
+    def postFileSources(self, jobid, sourceTable, sourceDataSet, srcProjection,
                         sourceType=constants.SourceTypes.file_geo_database):
         '''
         Writes file based sources, file based take a different set of args
@@ -614,6 +614,7 @@ class Sources(object):
         :param sourceTable: the name of the source table
         :param sourceDataSet: the dataset path, for fgdb this is the path to
                               the fgdb.
+        :param srcProjection: the projection for the source dataset
         :param sourceType: the type of source, default value is fgdb.
         :return: the json object returned by the post request.
         '''
@@ -621,7 +622,8 @@ class Sources(object):
         struct = {sourceProps.jobid.name: jobid,
                   sourceProps.sourceTable.name: sourceTable,
                   sourceProps.sourceFilePath.name: sourceDataSet,
-                  sourceProps.sourceType.name: sourceType}
+                  sourceProps.sourceType.name: sourceType, 
+                  sourceProps.sourceProjection.name: srcProjection}
         resp = requests.post(self.sourcesUrl, data=struct,
                              headers=self.baseObj.authHeader)
         self.logger.debug("source post status code: %s", resp.status_code)

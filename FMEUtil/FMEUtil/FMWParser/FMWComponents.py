@@ -17,6 +17,7 @@ import FMWParserConstants
 # pylint: disable=invalid-name
 # pylint: disable=logging-format-interpolation
 
+
 class FMEWorkspace(object):
     '''
     Provides an api to extract information about the workspace
@@ -434,7 +435,7 @@ class AttributeRenamerTransformer(TransfomerBase):
         '''
         fldMapList = fldMapStr.split(',')
         self.logger.debug("fldMapList: {0}".format(fldMapList))
-        self.logger.debug("version: %s",version )
+        self.logger.debug("version: %s", version)
         fldMap = []
         increment = 3
         if version == '1':
@@ -562,6 +563,7 @@ class FMEFeatureClasses(object):
         self.logger.debug("publishedParams: {0}".format(
             publishedParams))
         self.addFeatureClasses(featureClassesStruct)
+        self.iterCnter = 0  # keeps track of where the iterator is
 
     def addFeatureClasses(self, featureClassesStruct):
         '''
@@ -682,11 +684,33 @@ class FMEFeatureClasses(object):
             tmpDataSetDict[datasetName] = curDataSet
 
         for dataSet in tmpDataSetDict.keys():
-            newEntry = {'name': dataSet,
-                        'children': tmpDataSetDict[dataSet]}
+            # newEntry = {'name': dataSet,
+            #            'children': tmpDataSetDict[dataSet]}
             # datasetDict['children'].append(newEntry)
             datasetDict['children'].append(tmpDataSetDict[dataSet])
         return datasetDict
+
+    def __iter__(self):
+        return self
+
+    def reset(self):
+        '''
+        resets the iterator back to the start, any current iterators will
+        get pointed back to the first element.
+        '''
+        self.iterCnter = 0
+
+    def next(self):
+        '''
+        required method for iterators
+        '''
+        retVal = None
+        if self.iterCnter >= len(self.featClassesList):
+            raise StopIteration
+        else:
+            retVal = self.featClassesList[self.iterCnter]
+            self.iterCnter += 1
+        return retVal
 
 
 class FMEFeatureClass(object):
@@ -875,6 +899,7 @@ class FMEDataSet(object):
         self.fcDataSetRelationshipField = 'KEYWORD'
         self.datasetNameField = 'DATASET'
         self.datasetFormatField = 'FORMAT'
+        self.projectionField = 'COORDSYS'
 
     def getJson(self):
         dataSetList = []
@@ -898,6 +923,12 @@ class FMEDataSet(object):
         # pp = pprint.PrettyPrinter(indent=4)
         # pp.pprint(self.datasetStruct)
         return self.datasetStruct[self.datasetFormatField]
+
+    def getProjection(self):
+        '''
+        :returns: the projection that has been defined for the dataset
+        '''
+        return self.datasetStruct[self.projectionField]
 
     def __str__(self):
         return self.getDataSetName()

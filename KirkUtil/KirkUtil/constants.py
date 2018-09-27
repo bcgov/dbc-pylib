@@ -36,6 +36,7 @@ class SourceProperties(Enum):
     sourceDBHost = 7
     sourceDBPort = 8
     sourceFilePath = 9
+    sourceProjection = 10
 
 
 class FieldmapProperties(Enum):
