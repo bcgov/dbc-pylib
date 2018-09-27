@@ -7,7 +7,7 @@ Created on Feb 8, 2017
 from setuptools import setup
 
 setup(name='DB',
-      version='0.3',
+      version='0.4',
       description='wrapper for database communication',
       url='httpshttps://github.com/bcgov/dbc-pylib/tree/master/DB',
       author='Kevin Netherton',
@@ -17,5 +17,5 @@ setup(name='DB',
       install_requires=[
           'cx_Oracle',
       ],
-      dependency_links = ['git+https://github.com/bcgov/dbc-pylib@v2.1.16#egg=Misc&subdirectory=Misc'],
+      dependency_links = ['git+https://github.com/bcgov/dbc-pylib@v2.3.1#egg=Misc&subdirectory=Misc'],
       zip_safe=False)
