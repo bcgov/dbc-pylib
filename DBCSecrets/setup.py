@@ -13,7 +13,7 @@ setup(name='DBCSecrets',
       author='Kevin Netherton',
       author_email='kevin.netherton@gov.bc.ca',
       license='MIT',
-      packages=['Secrets'],
+      packages=['DBCSecrets'],
       install_requires=[
           'requests>=2.18.4'
                ],
