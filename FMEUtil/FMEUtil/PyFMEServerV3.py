@@ -77,7 +77,7 @@ class FMERestBase(object):
         This is used when constructing urls to make sure the path can have
         another directory added to it using the urljoin method.
         '''
-        if url[len(url) - 1] <> '/':
+        if url[len(url) - 1] != '/':
             url = url + '/'
         self.logger.debug("url: %s", url)
         return url
