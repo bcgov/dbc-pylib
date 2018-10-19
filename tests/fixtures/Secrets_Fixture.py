@@ -7,7 +7,7 @@ Fixture that provides the url and the tokens required to communicate with
 Kirk API
 '''
 import pytest
-import Secrets.GetSecrets
+import DBCSecrets.GetSecrets
 import os
 import logging
 
@@ -18,7 +18,7 @@ def KirkConnectInfo_local():
                                'secrets.json')
     secretsFile = os.path.realpath(secretsFile)
     print 'secretsFile', secretsFile
-    creds = Secrets.GetSecrets.CredentialRetriever(secretsFile)
+    creds = DBCSecrets.GetSecrets.CredentialRetriever(secretsFile)
     credsMisc = creds.getMiscParams()
     url = credsMisc.getParam('appkirkhost_local')
     token = credsMisc.getParam('appkirktoken_local')
@@ -32,7 +32,7 @@ def KirkConnectInfo_openShift_dev():
                                'secrets.json')
     secretsFile = os.path.realpath(secretsFile)
     logging.debug('secretsFile: %s', secretsFile)
-    creds = Secrets.GetSecrets.CredentialRetriever(secretsFile)
+    creds = DBCSecrets.GetSecrets.CredentialRetriever(secretsFile)
     credsMisc = creds.getMiscParams()
     url = credsMisc.getParam('appkirkhost_os_dev')
     token = credsMisc.getParam('appkirktoken_os_dev')

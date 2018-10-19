@@ -95,6 +95,12 @@ class CounterTransformerMap(Enum):
     counterScope = 3
     counterStartNumber = 4
 
+class KirkFMWs(Enum):
+    '''
+    Different FMW types that are used by Kirk, these names do not
+    include the .fmw suffix.  Used to define job types
+    '''
+    APP_KIRK__FGDB = 1
 
 class SourceTypes():
     '''

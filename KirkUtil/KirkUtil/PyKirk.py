@@ -19,6 +19,7 @@ import requests
 
 from . import constants
 
+
 class BaseRestCall(object):
     '''
     all kirk api methods will inherit from this class, includes base data
@@ -113,8 +114,8 @@ class ParamMatch(object):
        - counterScope
        - counterStartNumber
 
-    and the corresponding ts*_value would contain the corresponding values for each,
-    thus if
+    and the corresponding ts*_value would contain the corresponding values
+    for each, thus if
        ts1_name = transformerType
 
     then the entry
@@ -122,7 +123,8 @@ class ParamMatch(object):
     would contain the corresponding value for transformerType.
     '''
 
-    def __init__(self, paramSchema, schemaNameTemplate, schemaValueTemplate, numberOfColumns):
+    def __init__(self, paramSchema, schemaNameTemplate, schemaValueTemplate,
+                 numberOfColumns):
         self.logger = logging.getLogger(__name__)
         self.paramSchema = paramSchema
         self.schemaNameTemplate = schemaNameTemplate
@@ -407,7 +409,8 @@ class Transformers(object):
         self.logger = logging.getLogger(__name__)
         self.baseObj = baseObj
         transformerUrl = urlparse.urljoin(self.baseObj.restUrl,
-                                     constants.KirkApiPaths.Transformers, True)
+                                          constants.KirkApiPaths.Transformers,
+                                          True)
         self.transformerUrl = self.baseObj.fixUrlPath(transformerUrl)
         self.logger.debug("transformer url: {0}".format(self.transformerUrl))
         self.transformers = None
@@ -504,11 +507,14 @@ class Transformers(object):
 
                         paramName_value = transformer[paramName_name]
                         paramValue_value = transformer[paramValue_name]
-                        self.logger.debug("name: {0} = {1}".format(paramName_value, paramValue_value))
-                        self.logger.debug("{0} {1}".format(type(param_value), type(paramValue_value)))
+                        self.logger.debug("name: {0} = {1}".format(
+                            paramName_value, paramValue_value))
+                        self.logger.debug("{0} {1}".format(
+                            type(param_value), type(paramValue_value)))
                         if type(param_value) != type(paramValue_value):
-                            self.logger.warning("type mismatch {0} / {1}".format(type(param_value), 
-                                                                                 type(paramValue_value))) 
+                            self.logger.warning("type mismatch {0} / {1}".format(
+                                type(param_value),
+                                type(paramValue_value)))
                             self.logger.info("converting both to unicode")
                             param_value = unicode(param_value)
                             paramValue_value = unicode(paramValue_value)
@@ -543,7 +549,7 @@ class Transformers(object):
         '''
 
         transformerUrl = urlparse.urljoin(self.transformerUrl,
-                                     str(transformerid), True)
+                                          str(transformerid), True)
         transformerUrl = self.baseObj.fixUrlPath(transformerUrl)
 
         resp = requests.delete(transformerUrl, headers=self.baseObj.authHeader)
@@ -622,7 +628,7 @@ class Sources(object):
         struct = {sourceProps.jobid.name: jobid,
                   sourceProps.sourceTable.name: sourceTable,
                   sourceProps.sourceFilePath.name: sourceDataSet,
-                  sourceProps.sourceType.name: sourceType, 
+                  sourceProps.sourceType.name: sourceType,
                   sourceProps.sourceProjection.name: srcProjection}
         resp = requests.post(self.sourcesUrl, data=struct,
                              headers=self.baseObj.authHeader)
@@ -780,6 +786,7 @@ class Jobs(object):
         jobUrl = urlparse.urljoin(jobUrl, constants.KirkApiPaths.FieldMaps,
                                   True)
         jobUrl = self.baseObj.fixUrlPath(jobUrl)
+        self.logger.debug("job fieldmap url: %s", jobUrl)
         response = requests.get(jobUrl, headers=self.baseObj.authHeader)
         self.logger.debug("response Status: %s", response.status_code)
         if response.status_code < 200 or response.status_code >= 300:
@@ -915,7 +922,8 @@ class Jobs(object):
     def getJobTransformers(self, jobid):
         jobUrl = urlparse.urljoin(self.jobsUrl, str(jobid), True)
         jobUrl = self.baseObj.fixUrlPath(jobUrl)
-        jobUrl = urlparse.urljoin(jobUrl, constants.KirkApiPaths.Transformers, True)
+        jobUrl = urlparse.urljoin(jobUrl,
+                                  constants.KirkApiPaths.Transformers, True)
         jobUrl = self.baseObj.fixUrlPath(jobUrl)
         response = requests.get(jobUrl, headers=self.baseObj.authHeader)
         self.logger.debug("response Status: %s", response.status_code)
@@ -934,7 +942,8 @@ class Jobs(object):
         counterTransformers = []
 
         for trans in transformers:
-            if trans[transParam.transformer_type.name] == constants.TransformerTypes.counter.name:
+            if trans[transParam.transformer_type.name] == \
+                    constants.TransformerTypes.counter.name:
                 counterTransformers.append(trans)
         return counterTransformers
 
@@ -942,10 +951,10 @@ class Jobs(object):
         '''
         Determines if a transformer with the parameters defined in 'params'
         of the type defined in 'transformerType' exists.
-        
+
         :param jobid: the job id who's transformers you wish to query
         :type jobid: int/str
-        :param transformerType: A transformer type defined in 
+        :param transformerType: A transformer type defined in
                                 constants.TransformerTypes
         :type transformerType: PyKirk.constants.TransformerTypes
         :param params: a dictionary that represents a set of transformer
@@ -960,30 +969,35 @@ class Jobs(object):
             msg = 'received a transformer type: {0}, Not a valid value, ' + \
                   'possible values defined in PyKirk.constants.TransformerTypes ' + \
                   'which are: {1}'
-            msg = msg.format(transformerType, 
+            msg = msg.format(transformerType,
                              constants.JobProperties.__members__.keys())  # @UndefinedVariable
             raise ValueError(msg)
-        
+
         # all the transformer associated with the job
         transformers = self.getJobTransformers(jobid)
-        
-        # filter the jobs that match 'transformerType' 
+
+        # filter the jobs that match 'transformerType'
         transProps = constants.TransformerProperties
         jobTransformersList = []
         for transformer in transformers:
-            if transformer[transProps.transformer_type.name] == transformerType:
+            if transformer[transProps.transformer_type.name] == \
+                    transformerType:
                 # now compare the params
                 jobTransformersList.append(transformer)
-        
+
         if jobTransformersList:
-            paramMatch = ParamMatch(constants.CounterTransformerMap,
-                                    constants.TRANSFORMER_NAME_TMPLT,
-                                    constants.TRANSFORMER_VALUE_TMPLT,
-                                    constants.TRANSFORMERS_DYNAMICFIELDS_LENGTH)
-            
-            firstMatch = paramMatch.getMatchingSchema(jobTransformersList, params)
-            exists = True
+            paramMatch = ParamMatch(
+                constants.CounterTransformerMap,
+                constants.TRANSFORMER_NAME_TMPLT,
+                constants.TRANSFORMER_VALUE_TMPLT,
+                constants.TRANSFORMERS_DYNAMICFIELDS_LENGTH)
+
+            firstMatch = paramMatch.getMatchingSchema(jobTransformersList,
+                                                      params)
+            if firstMatch:
+                exists = True
         return exists
+
 
 class APIError(Exception):
     '''
