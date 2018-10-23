@@ -1,29 +1,37 @@
 # Interacting with Password Manager Pro Using Python.
 
-*This next section shows you how you can read the published parameters of a script in FME server, from the published parameters infer the*
-*destination schema, then query PMP to retrieve the password for that schema, finally calling the job with the credentials.  This is portrayed*
-*just as an example.  All of the production processes / automations now use the Secrets package to identify and retrieve secrets used by a *
-*particular process.*
-
-Like FME Server in order to interact with PMP you must have a PMP token.  Token's are not provided in this document for obvious security purposes.   
-PMP tokens are specific to host.  In other words if you are developing code on one server, and then deploying on another you will require two different PMP security tokens.
-What follows are some examples showing you how you can interact with PMP using the PMP.PMPRestConnect.py module.
+<img src="https://lh3.googleusercontent.com/aTmyj9EvEkZx0TXegQgBsjhRzV1LMMPVm53AEe0ffoZW0gcDroTRiz9XXzRnY1RwtninayNRCDuaIC8y3tgR7DlxDqB3_9jPEo_EMznJUm-yvA1d4-5zXl4i3FPr3Q1KpQ8hGOyc2MaZyWwNvZrUgqZ8zHGNWgh0v3W5sYI8AqoIq6T_y1Mzrr4vcUxGS3Av37PGQMy_M0PV5R7LPXAG922N6-wb8gD8DnnONqb6XNhcZGDEZygWkY7HmtLJqLykmOzeSWze66hrdvMjKNeDCEuWuX6sFUAlV5UpWz3LQcm_6xurbpL8u2SS8i4YxJSLlIfyQQUmI0MbLIxkv-XP1YbWglgy5BUiq5QI9qMwxU94lMMSAuvLbkRPzemefA5NS_mjHGo25BhdLIgDEjeYUlcJ9Pr28Y0Uog8OjMCWraJh1RSPfGkFKX1Phocur1DvUBpa1PYs6YmIcIgZFDJ3hCKEW6UDMEGw-kchajNFoN1ZIdXlxcDrXhRj5p1fiCJBWUfATV6_MBppaTqfE0WqxqkIsCVjgrTxMJl_MNdfXZVZOOdfSHa1j3wUfp5uZDGoJHRtqXdn_zImLVtaKPcxanzkW--kZ2NzAYqwyBISvlvuMyzFkyj5NKlVT76z40W68XtADDWquOr5cbqT0HsI6jUgN5GBL2-H-INC-bUCGBPeokQRk8MkJaRN-w=w1404-h790-no" width="600"/>
 
 ## Overview of PMP
 
-Ok before we get to the code its useful to have a bit of an idea as to how the PMP api is structured.  The following link describes the PMP Rest api which is what is wrapped by this python code.
+PMP is an application that can be used to help manage credentials for your
+organization.  PMP includes a rest api that can be configured to allow for
+credential retrievals using an API token.  The following link describes the
+PMP Rest api which is what is wrapped by this python code.
 
 [https://www.manageengine.com/products/passwordmanagerpro/help/restapi.html](https://www.manageengine.com/products/passwordmanagerpro/help/restapi.html)
 
-In short PMP starts with a "Resource".  Resources keep track of "Accounts".  Database Schemas and accounts are the same thing.  Finally passwords are stored in accounts.  
+In short PMP starts with a *"Resource"*.  Resources keep track of *"Accounts"*.  Database Schemas and accounts are the same thing.  Finally passwords are stored in accounts. 
 
 The PMP rest api typically wants to use numeric ids to refer to "Resources", "Accounts", but people want to use the "name".  So if you know the resource name and the account / schema name, before you can request the password you will need to retrieve the ids for the "Resource" and the "Account". 
 
 The python api attempts to hide this from you.  The functionality is still there but you probably won't need it.
 
+## Getting the PMP Module
+
+Add the following line to your requirements file:
+
+`git+https://github.com/bcgov/dbc-pylib@v3.0.2#egg=PMP&subdirectory=PMP`
+
+where:
+  - **v3.0.2**: is the version / release number that you wish to install.
+  
+Then install your requirements using:
+`pip install -r requirements.txt`
+
 ## Importing the Module
 
-Like the FME Server code, the pmp module is a package in the DataBC python library.  To use download and set up the PYTHONPATH or install to a virtualenv.
+`import PMP.PMPRestConnect`
 
 ## Creating a PMP Object
 
@@ -107,7 +115,11 @@ pswd = pmp.getAccountPassword(schema, rsrcNm)
 print 'password for {0} in DELIVERY is {1}'.format(schema, pswd)
 ```
 
-# Putting it all together
+# Combining PMP and FME Server module
+
+Leaving this example here in case it is of use, however most of what is 
+described below is now accomplished using the *Secrets* module.  Docs 
+available [here](https://github.com/franTarkenton/dbc-pylib/blob/master/docs/secrets.md)
 
 ## Example 1:
 
@@ -126,6 +138,7 @@ This example will:
 import PMP.PMPRestConnect
 import pprint
 import FMEUtil.PyFMEServerV2
+
 pmpResource = 'PMP_RESOURCE_NAME'
 jobName = r'illuminatiCauzedTsunamis.fmw'
 

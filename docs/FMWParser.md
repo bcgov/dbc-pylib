@@ -90,5 +90,21 @@ FMEUtil repo.
 
 ### Getting Transformers
 
+Steps illustrated in code:
+1. create a parser
+1. get the workspace
+1. get the transformers
+1. get the names of the transformers
+
+
+``` python
+fmwFile = r'/mnt/fmwPlayground/parserData/demoFMWwithTransformers.fmw'
+parser = FMEUtil.FMWParser.FMWParser(fmwFile)
+wrkspcObj = parser.getFMEWorkspace()
+transfmrs = wrkspcObj.getTransformers()
+transformerNames = transfmrs.getTransformerNames()
+print 'transformers used: ', transformerNames
+```
+
 
 
