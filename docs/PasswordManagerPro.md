@@ -119,7 +119,7 @@ print 'password for {0} in DELIVERY is {1}'.format(schema, pswd)
 
 Leaving this example here in case it is of use, however most of what is 
 described below is now accomplished using the *Secrets* module.  Docs 
-available [here](https://github.com/franTarkenton/dbc-pylib/blob/master/docs/secrets.md)
+available [here](docs/secrets.md)
 
 ## Example 1:
 
