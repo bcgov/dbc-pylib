@@ -95,6 +95,16 @@ class CounterTransformerMap(Enum):
     counterScope = 3
     counterStartNumber = 4
 
+
+class KirkJobProperties():
+    '''
+    default properties used to describe FME Job schedules
+    '''
+    repositoryName = 'KIRK'
+    category = 'kirk_scheduled'
+    kirkScheduleSuffix = '.KIRK'
+    kirkFMWPrefix = 'APP_KIRK__'
+
 class KirkFMWs(Enum):
     '''
     Different FMW types that are used by Kirk, these names do not

@@ -29,6 +29,7 @@ class FMEFrameworkPublishedParameters(Enum):
     DEST_SCHEMA = 1
     DEST_FEATURE = 2
     KIRK_JOBID = 3
+    KIRK_JOBLABEL = 4
     
     
     

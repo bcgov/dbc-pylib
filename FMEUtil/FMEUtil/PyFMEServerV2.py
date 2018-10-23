@@ -412,9 +412,9 @@ class Schedule(object):
              'name': 'fancyfmwName.fmw',
              'repository': 'GuyLaFleur',
              'request':
-                 {'publishedParameters':
+                 {'publishedParameters':[
                      {'name': 'Dest_Server',
-                     'value': 'somehost.bcgov'}
+                     'value': 'somehost.bcgov'}]
                  },
              'enabled': True,
              'cron': '0 30 2 * * 2,3,4,5,6',

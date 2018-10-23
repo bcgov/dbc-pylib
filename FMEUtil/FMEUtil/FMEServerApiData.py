@@ -10,13 +10,15 @@ is returned from various FME Server End points.
 import FMEConstants
 import logging
 import KirkUtil.constants
+import sys
 
 
 class Schedules(object):
 
     def __init__(self, schedulesData):
         self.logger = logging.getLogger(__name__)
-        self.logger.debug("logger created!")
+        print 'name:', __name__
+        self.logger.debug("logger created for {0}!".format(__name__))
         self.data = schedulesData
 
     def exists(self, scheduleName, casesensitve=False):
@@ -29,19 +31,23 @@ class Schedules(object):
                 schedName = schedName.lower()
             if scheduleName == schedName:
                 schedExists = True
+                self.logger.debug("job exists: %s", schedName)
+                pubParms = sched.getPublishedParameters()
+                self.logger.debug("published Params: %s", unicode(pubParms))
                 break
         return schedExists
-    
+
     def kirkScheduleExists(self, kirkJobId, kirkType):
         '''
-        
-        :param kirkJobId: The job id for a kirk job who's existence is 
+
+        :param kirkJobId: The job id for a kirk job who's existence is
                           being queried
         :type kirkJobId:  str/int
         :param kirkType: The type of Kirk Job, current options are defined
                          in the enumeration KirkUtil.constants.KirkFMWs
         :type kirkType: KirkUtil.constants.KirkFMWs
         '''
+        retVal = False
         # start by making sure the type is correct
         if not isinstance(kirkType, KirkUtil.constants.KirkFMWs):
             msg = 'The arg kirkType has a type of: {0}.  Needs to be a ' + \
@@ -49,15 +55,22 @@ class Schedules(object):
             msg = msg.format(type(kirkType))
             raise ValueError(msg)
         kirkFmwName = '{0}.fmw'.format(kirkType.name)
+        self.logger.debug("kirk FMW name: %s", kirkFmwName)
         # now test for that name
         for schedData in self.data:
             sched = Schedule(schedData)
-            schedName = sched.getName()
-            if schedName.lower() == kirkFmwName.lower():
+            fmwName = sched.getFMWName()
+            #self.logger.debug("schedName: %s", fmwName)
+            if fmwName.lower() == kirkFmwName.lower():
                 # now get the jobid associated with this job
+                self.logger.debug("found the fmw: %s", fmwName)
                 pp = sched.getPublishedParameters()
-                kirkJobId = pp.getKirkJobId()
-        
+                ppKirkJobId = pp.getKirkJobId()
+                if unicode(ppKirkJobId) == unicode(kirkJobId):
+                    retVal = True
+                    self.logger.debug("found match for %s", ppKirkJobId)
+                    break
+        return retVal
 
     def getSchedule(self, scheduleName, casesensitve=False):
         schedule = None
@@ -91,8 +104,9 @@ class Schedule(object):
         publishedParameters = FMEConstants.Schedule.publishedParameters.name
         schedulePubParams = self.data[request][publishedParameters]
         pubparams = SchedulePublishedParameters(schedulePubParams)
+        self.logger.debug("pub params: %s", unicode(pubparams))
         return pubparams
-    
+
     def getCategory(self):
         '''
         :return: the schedules category, used to uniquely identify schedules
@@ -100,15 +114,25 @@ class Schedule(object):
         self.logger.debug("retrieving the category")
         key = FMEConstants.Schedule.category.name
         return self.data[key]
-    
+
     def getCRON(self):
         '''
         :return: the cron recurrence string
         '''
         key = FMEConstants.Schedule.cron.name
         return self.data[key]
-       
-
+    
+    def getFMWName(self):
+        key = FMEConstants.Schedule.workspace.name
+        return self.data[key]
+    
+    def getRepository(self):
+        '''
+        :return: the name of the repository that the schedule is pointing
+                 to
+        '''
+        key = FMEConstants.Schedule.repository.name
+        return self.data[key]
 
 class SchedulePublishedParameters(object):
 
@@ -196,7 +220,7 @@ class SchedulePublishedParameters(object):
 
     def getKirkJobId(self):
         '''
-        :return: If the kirk job id parameter is defined it is retrieved 
+        :return: If the kirk job id parameter is defined it is retrieved
                  and returned, if it is not defined returns None
         '''
         kirkJobIdParamName = \
@@ -204,3 +228,8 @@ class SchedulePublishedParameters(object):
         retVal = self.getParamValue(kirkJobIdParamName)
         return retVal
 
+    def __unicode__(self):
+        return u'{0}'.format(self.data)
+    
+    def __str__(self):
+        return self.__unicode__()
