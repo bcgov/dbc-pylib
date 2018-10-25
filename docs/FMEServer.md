@@ -3,7 +3,7 @@
 <img src="https://lh3.googleusercontent.com/UwGUu2-fwqkEuGiup-VTs1yD2ZEgP-imuX6g37-BUfQc7Q4yzngPw5Xfw2RhP-kqzUYwnvqfHyzHbDecpw2BNp3icC7ak4HU24ogXe3RBVmDrGBenQ_ehH0nkmv5BHYxlK1t5CwcMj75LR-m1ttC6w0OelvuilSGvN0aB_Pso3Tqvj99hWC7IIuswiA4JJqAI8wrnOPc-Abbds2B5IXe8wQOQV1tx0yGHReuUsm8Hl6fsMb2-oowGxjDiukZ8V8DaP_J2oznxXZaBvkVJnis-o9KNIj_iV0DMh8ScAOZsVwEt2SHrvuQQto49ogOIA8SCo58I2IwCJIyLsDQrgcz7MXUu7noJiMjD9j38bCY_JQUZhAFCfMeiAJhCRl7SGL27iKmQbu3PooqPMMTWhnJTjMroff1mfH3n9i2Iow-ZyVGcWcjklPwQCcaTeo8aqUWlbmkwHDbIAzrPBfgs8uPT1YuAmFOKrgBOJHBHavptaSWLFcntevvhcw-FeHhwexNsiASEXTTKMGKKgv5e1LxDaU_Ic13P6efAisOmuJOg37zEXb-KqyjWQKuD1o_EQgKt7Kj03j1EKFrVxoL740pm_JL2I8Yj91jvdLElPeVxoA3yEpRPYXIsmouTAJlTPrSrgSFjMUkysY5j0cKIHOymrZcoSTBX9A58g=w1252-h704-no" width="600"/>
 
 
-## Importing the Module:
+## Installing:
 
 The FME Server Python Module is part of the DataBCPyLib which is located in this repository in the FMEUtil package:
 
@@ -18,6 +18,27 @@ And then install the requirements using pip
 
 `pip install -r requirements.txt`
 
+## Which module to use?
+
+There are two modules in the FMEUtil package:
+ - PyFMEServerV2
+ - PyFMEServerV3
+ 
+Each of these corresponds with a different rest api version. Version 2 (v2) 
+was used on FME 2015, 2016, and I believe v3 is used on 2017, and 2018.  
+
+Currently both versions are interchangeable, however v3 will gradually 
+introduce new features that won't be available in v2.  While most of the
+documentation below uses v2 you should be able to safely swap the import
+statements to use v3 without any problems.
+
+For example you would change the line:
+
+`import FMEUtil.PyFMEServerV2`
+
+with the line:
+
+`import FMEUtil.PyFMEServerV3`
 
 ## Connecting with FME Server
 
@@ -93,31 +114,30 @@ print 'wrkspcNames', names
 ### workspace that we want to retrieve
 
 ```
+# fmw name who's published parameter we want to get
 wrkspaceName = r'superFancy.fmw'
-server = r'http://fmeserver.name.com' # server
-token = r'e3224ccBost0nBru1nsSuck3234890g0Habsscfesdfs2342'# token
-```
 
-### create fme server object
+# provide the server / token and create fmeserver object
+server = r'http://fmeserver.name.com'
+token = r'e3224ccBost0nBru1nsSuck3234890g0Habsscfesdfs2342'
+fmeSrv = FMEUtil.PyFMEServerV2.FMEServer(server, token)
 
-`fmeSrv = FMEUtil.PyFMEServerV2.FMEServer(server, token)`
+#get a repository object
+repo = fmeSrv.getRepository()
 
-### get a repository object
+# get a workspaces object for the repo "FME_REPOSITORY"
+wrkspcs = repo.getWorkspaces('FME_REPOSITORY')
 
-`repo = fmeSrv.getRepository()`
+# request the published parameters
+params = wrkspcs.getPublishedParams(wrkspaceName)
 
-### get a workspaces object for the repo "FME_REPOSITORY"
+# print the parameters
+print 'params', params
 
-`wrkspcs = repo.getWorkspaces('FME_REPOSITORY')`
-
-### request the published parameters
-
-`params = wrkspcs.getPublishedParams(wrkspaceName)`
-
-### print the parameters
-
-```
-`print 'params', params
+# (optional) pretty print the parameters
+import pprint
+pp = pprint.PrettyPrinter(indent=4)
+pp.pprint(params)
 ```
 
 ## Pretty Printing Data Structures
@@ -127,7 +147,10 @@ When creating the module PyFMEServerV2 in as many cases as possible I have tried
 * Basics of python data structures: [https://docs.python.org/2/tutorial/datastructures.html](https://docs.python.org/2/tutorial/datastructures.html)
 * Nested data structures: [http://www.pasteur.fr/formation/infobio/python/ch10.html](http://www.pasteur.fr/formation/infobio/python/ch10.html)
 
-The pretty print module is useful when trying to decipher the data structure that is returned.  The following example "pretty" prints a nested data structure:
+The pretty print module is useful when trying to decipher the data 
+structure that is returned.  The previous example showed how to format 
+the published parameters that were returned. The following example 
+"pretty" prints a more complex nested data structure:
 
 ```
 import pprint
@@ -219,4 +242,37 @@ if not wrkSpcs.exists(justfmw):
 # register with the job submitter
 wrkSpcs.registerWithJobSubmitter(justfmw)
 ```
+
+## Download an FMW
+```
+import FMEUtil.PyFMEServerV2
+imort os.path
+
+# identify the source repository
+repoName = 'FME_REPOSITORY_NAME'
+
+# identify the source FMW
+wrkspcName = 'myFancy.fmw'
+
+# create an fme server object
+server = r'http://fmeserver.name.com'
+token = r'e3224ccBost0nSucks3234890scfesdfs2342'
+fmeSrv = FMEUtil.PyFMEServerV2.FMEServer(server, token)
+
+# get a repository object
+repo = fmeSrv.getRepository()
+
+# get a workspaces object
+workspaces = repo.getWorkspaces(repoName)
+
+# identify the destination path
+destinationPath = os.path.join('/home/guylafleur/fmws', wrkspcName)
+
+# perform the download
+workspaces.downloadWorkspace(wrkspcName, destinationPath)
+
+```
+
+
+
 

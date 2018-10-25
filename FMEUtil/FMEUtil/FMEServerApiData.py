@@ -11,6 +11,7 @@ import FMEConstants
 import logging
 import KirkUtil.constants
 import sys
+from ctypes.test.test_array_in_pointer import Value
 
 
 class Schedules(object):
@@ -60,7 +61,7 @@ class Schedules(object):
         for schedData in self.data:
             sched = Schedule(schedData)
             fmwName = sched.getFMWName()
-            #self.logger.debug("schedName: %s", fmwName)
+            # self.logger.debug("schedName: %s", fmwName)
             if fmwName.lower() == kirkFmwName.lower():
                 # now get the jobid associated with this job
                 self.logger.debug("found the fmw: %s", fmwName)
@@ -99,6 +100,17 @@ class Schedule(object):
         # self.logger.debug("value: %s", self.data[key])
         return self.data[key]
 
+    def getScheduleName(self):
+        '''
+        Schedule name as defined in the schedule object.  In the event that
+        the schedule departs from the standard case this should retrieve the
+        correct case.
+        '''
+        self.logger.debug("retrieving the schedule name")
+        key = FMEConstants.Schedule.name.name
+        self.logger.debug("key is: %s", key)
+        return self.data[key]
+
     def getPublishedParameters(self):
         request = FMEConstants.Schedule.request.name
         publishedParameters = FMEConstants.Schedule.publishedParameters.name
@@ -121,11 +133,11 @@ class Schedule(object):
         '''
         key = FMEConstants.Schedule.cron.name
         return self.data[key]
-    
+
     def getFMWName(self):
         key = FMEConstants.Schedule.workspace.name
         return self.data[key]
-    
+
     def getRepository(self):
         '''
         :return: the name of the repository that the schedule is pointing
@@ -133,6 +145,7 @@ class Schedule(object):
         '''
         key = FMEConstants.Schedule.repository.name
         return self.data[key]
+
 
 class SchedulePublishedParameters(object):
 
@@ -210,7 +223,17 @@ class SchedulePublishedParameters(object):
         self.logger.debug("paramName: %s", paramName)
         for param in self.data:
             if param['name'] == paramName:
-                retVal = param['value']
+                # sometimes the data is stored in a parameter called 'raw'
+                if 'value' in param:
+                    retVal = param['value']
+                elif 'raw' in param:
+                    retVal = param['raw']
+                    self.logger.warning("using the raw value: %s", retVal)
+                else:
+                    msg = 'the published parameter %s does not have the ' + \
+                          'any of the expected keys, ie value, or raw'
+                    self.logger.error(param)
+                    raise ValueError(msg)
                 break
         if retVal is None:
             msg = 'unable to find a parameter in the published parameters ' + \
@@ -230,6 +253,6 @@ class SchedulePublishedParameters(object):
 
     def __unicode__(self):
         return u'{0}'.format(self.data)
-    
+
     def __str__(self):
         return self.__unicode__()
