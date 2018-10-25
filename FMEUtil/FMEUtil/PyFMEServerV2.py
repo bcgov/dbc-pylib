@@ -412,9 +412,9 @@ class Schedule(object):
              'name': 'fancyfmwName.fmw',
              'repository': 'GuyLaFleur',
              'request':
-                 {'publishedParameters':
+                 {'publishedParameters':[
                      {'name': 'Dest_Server',
-                     'value': 'somehost.bcgov'}
+                     'value': 'somehost.bcgov'}]
                  },
              'enabled': True,
              'cron': '0 30 2 * * 2,3,4,5,6',
@@ -1253,6 +1253,8 @@ class Resources(object):
         self.fileSysDir = 'filesys'
         self.url = urlparse.urljoin(self.baseObj.restUrl, self.baseObj.resourcesDir, True)
 
+        self.cachedResources = None
+
     def getRootDirContents(self):
         '''
         :return: Returns the contents of the current resource directory
@@ -1278,20 +1280,38 @@ class Resources(object):
         # print 'url is:', itemUrl
         addparams = {'depth': 10}
         dontErrorStatusCodes = [404]
-        response = self.baseObj.getResponse(itemUrl, additionalParams=addparams,
-                                            dontErrorStatusCodes=dontErrorStatusCodes)
+        response = self.baseObj.getResponse(
+            itemUrl, additionalParams=addparams,
+            dontErrorStatusCodes=dontErrorStatusCodes)
         return response
 
-    def exists(self, dirType, dirList):
+    def exists(self, dirType, dirList, useCache=False):
         '''
         :param dirType: a string describing whether a directory type exists
         :param dirList: a list that describes a directory path.
-        :return: Returns a boolean value indicating whether the resource described
-                 exists or not.
+        :param useCache: if the resource information is not changing, then you
+                         can set this parameter to true allowing re-use of
+                         cached resource information.  Offers significant
+                         performance improvements parameters.
+        :return: Returns a boolean value indicating whether the resource
+                 described exists or not.
         '''
-        response = self.getDirectory(dirType, dirList)
+        dirListStr = '|'.join(dirList)
+        # dealing with the cache issue
+        if ((((useCache) and
+            self.cachedResources is not None) and
+                dirType in self.cachedResources) and
+                dirListStr in self.cachedResources[dirType]):
+            response = self.cachedResources[dirType][dirListStr]
+        else:
+            response = self.getDirectory(dirType, dirList)
+            if self.cachedResources is None:
+                self.cachedResources = {}
+            if dirType not in self.cachedResources:
+                self.cachedResources[dirType] = {}
+            self.cachedResources[dirType][dirListStr] = response
         retVal = True
-        if response.has_key('message'):
+        if 'message' in response:
             if "does not exist" in response['message']:
                 retVal = False
         return retVal

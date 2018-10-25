@@ -77,7 +77,7 @@ class FMERestBase(object):
         This is used when constructing urls to make sure the path can have
         another directory added to it using the urljoin method.
         '''
-        if url[len(url) - 1] <> '/':
+        if url[len(url) - 1] != '/':
             url = url + '/'
         self.logger.debug("url: %s", url)
         return url
@@ -124,6 +124,7 @@ class FMERestBase(object):
             if payloadDict.has_key('accept'):
                 del payloadDict['accept']
             r = requests.get(url, params=payloadDict, stream=True, headers=header, data=body)
+            self.logger.debug("request is made with 'raw'")
         else:
             r = requests.get(url, params=payloadDict, headers=header, data=body)
         if r.status_code <> 200 and r.status_code not in dontErrorStatusCodes:
@@ -1323,12 +1324,21 @@ class Workspaces(object):
         url = self.baseObj.fixUrlPath(self.url)
         url = urlparse.urljoin(url, wrkspcName)
         self.logger.debug("url: %s", url)
+        self.logger.debug("wrkspcName: %s", wrkspcName)
         # print 'wrkspc url:', url
         header = {'Accept': r'application/octet-stream'}
-        response = self.baseObj.getResponse(url, returnType='raw', header=header)
-        fh = open(destination, 'w')
-        for reponseLine in response:
-            fh.write(reponseLine)
+        response = self.baseObj.getResponse(url, returnType='raw', header=header, returnRequestObj=True)
+        fh = open(destination, 'wb')
+        cnt = 0
+        # modified to read from the request content, before was reading
+        # from raw which as of fme2017 means that its reading the
+        # compressed stream this way doesn't require decompression as all
+        # handled by requests module.
+        for chunk in response.iter_content(chunk_size=128):
+        #for reponseLine in response:
+            #fh.write(reponseLine)
+            fh.write(chunk)
+            cnt += 1
         fh.close()
 
     def deleteWorkspace(self, wrkspcName):
