@@ -3,9 +3,9 @@ Created on Jul 28, 2015
 
 @author: kjnether
 
-keyless access to BCDC rest api, 
+keyless access to BCDC rest api,
 
-This library has mostly been replaced in favour of using the ckanapi lib at: 
+This library has mostly been replaced in favour of using the ckanapi lib at:
 https://github.com/ckan/ckanapi
 '''
 import logging
@@ -43,7 +43,9 @@ class BCDCRestQuery():
                        get request
 
         '''
+        self.logger.debug("params: %s", params)
         r = requests.get(url, params=params)
+        self.logger.debug("url sent: %s", r.url)
         self.logger.debug('request status: %s', r.status_code)
         self.logger.debug('request json: %s', r.json())
 
@@ -89,6 +91,24 @@ class BCDCRestQuery():
         url = urlparse.urljoin(url, method)
         query = {'id': revisionID}
         # print 'query', query
+        self.logger.debug("query: %s", query)
+        self.logger.debug("url: %s", url)
+        response = self.executeRequest(url, query)
+        self.logger.debug("response: %s", response)
+        return response
+
+    def getResourceShow(self, resourceId):
+        '''
+        :param resourceId: the resourceid to fetch from bcdc (ckan)
+        :type resourceId: str
+
+        :return: datastructure returned by the CKAN api
+        '''
+        method = 'resource_show'
+        self.logger.debug("resourceid: %s", resourceId)
+        url = urlparse.urljoin(self.baseUrl, self.apiDir) + '/'
+        url = urlparse.urljoin(url, method)
+        query = {'id': resourceId}
         self.logger.debug("query: %s", query)
         self.logger.debug("url: %s", url)
         response = self.executeRequest(url, query)
