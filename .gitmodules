@@ -1,4 +1,0 @@
-[submodule "tests/secrets"]
-	path = tests/secrets
-	url = https://gogs.data.gov.bc.ca/daops/Secrets
-	branch = dbc_py_lib_testing
