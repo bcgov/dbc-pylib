@@ -725,6 +725,7 @@ class Jobs(object):
         if self.cachedJobs and not force:
             respJson = self.cachedJobs
         else:
+            self.logger.debug("self.jobsUrl: %s", self.jobsUrl)
             response = requests.get(self.jobsUrl,
                                     headers=self.baseObj.authHeader)
             self.logger.debug("response Status: %s", response.status_code)
