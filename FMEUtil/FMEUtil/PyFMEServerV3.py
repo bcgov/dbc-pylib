@@ -7,13 +7,14 @@ About
                python api defined by the original module
 :moduleauthor: Kevin Netherton
 :date:         9-30-2017
-:description:  Previous attempts at this library are messy! (FMEServerInteraction.py)
-               This is a third run at an FME server library.  This is the
-               base class and attempts to remain decoupled from other code
-               like PMP access modules for example.
+:description:  Previous attempts at this library are messy!
+               (FMEServerInteraction.py) This is a third run at an FME
+               server library.  This is the base class and attempts to
+               remain decoupled from other code like PMP access modules
+               for example.
 
-               This attempt tries to mimic the fme rest api hierarchy.  Scripts
-               always start with an FMEServer object.
+               This attempt tries to mimic the fme rest api hierarchy.
+               Scripts always start with an FMEServer object.
 
 '''
 import json
@@ -25,6 +26,9 @@ import urllib
 import urlparse
 
 import requests
+
+
+# pylint: disable=invalid-name
 
 
 class JSONConstants(object):
@@ -235,11 +239,11 @@ class FMERestBase(object):
             self.logger.debug("url: %s", r.url)
         else:
             r = requests.post(url, data=data, headers=header)
-        if not r.status_code in [200, 201]:
+        if r.status_code not in [200, 201]:
             msg = 'Received the error code: {0} when trying to ' + \
                   'schedule the job {1}'
             msg = msg.format(r.status_code, url)
-            raise ValueError, msg
+            raise ValueError(msg)
         response = None
         if returnType == 'json':
             self.logger.debug('rtext: %s', r.text)
@@ -669,7 +673,7 @@ class Log(object):
         '''
         Used to extract data from the log file.
         '''
-        # 2015-04-25 12:55:38|   2.5|  0.0|STATS |Total Features Written               
+        # 2015-04-25 12:55:38|   2.5|  0.0|STATS |Total Features Written
         #                                       59
         # startRegexStr = '^\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}\s*\|\s*\d+\.\d+\|\s*\d+\.\d+\|STATS\s*\|\s*Features\s+Written\s+Summary\s*$'
         # extractRegexStr = '^\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}\s*\|\s*\d+\.\d+\|\s*\d+\.\d+\|STATS\s*\|\s*\w+\s+\d+$'
@@ -1335,8 +1339,8 @@ class Workspaces(object):
         # compressed stream this way doesn't require decompression as all
         # handled by requests module.
         for chunk in response.iter_content(chunk_size=128):
-        #for reponseLine in response:
-            #fh.write(reponseLine)
+        # for reponseLine in response:
+            # fh.write(reponseLine)
             fh.write(chunk)
             cnt += 1
         fh.close()
