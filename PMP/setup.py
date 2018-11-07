@@ -14,6 +14,6 @@ setup(name='PMP',
       license='MIT',
       packages=['PMP'],
       install_requires=[
-          'requests',
+          'requests>=2.18.4',
       ],
       zip_safe=False)
