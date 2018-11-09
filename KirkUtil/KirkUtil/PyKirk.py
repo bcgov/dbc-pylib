@@ -235,6 +235,10 @@ class Kirk(BaseRestCall):
         transformers = Transformers(self)
         return transformers
 
+    def getDestinations(self):
+        destination = Destinations(self)
+        return destination
+
 
 class FieldMaps(object):
     '''
@@ -566,6 +570,36 @@ class Transformers(object):
             self.getTransformers(force=True)
 
         return resp
+
+
+class Destinations(object):
+    '''
+    end point for destinations
+    '''
+
+    def __init__(self, baseObj):
+        self.logger = logging.getLogger(__name__)
+        self.baseObj = baseObj
+        destinationsUrl = urlparse.urljoin(
+            self.baseObj.restUrl,
+            constants.KirkApiPaths.Destinations, True)
+        self.destinationsUrl = self.baseObj.fixUrlPath(destinationsUrl)
+        self.logger.debug("destinations url: %s", self.destinationsUrl)
+
+    def getDestinations(self):
+        '''
+        :return: dictionary describing the destinations currently defined
+                 in the kirk api
+        '''
+        response = requests.get(self.destinationsUrl,
+                                headers=self.baseObj.authHeader)
+        if response.status_code < 200 or response.status_code >= 300:
+            msg = constants.GET_NON_200_ERROR_MSG.format(
+                self.destinationsUrl, response.status_code, response.text)
+            raise APIError(msg)
+        respJson = response.json()
+        self.logger.debug("response json: %s", respJson)
+        return respJson
 
 
 class Sources(object):
