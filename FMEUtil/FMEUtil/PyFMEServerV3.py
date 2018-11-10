@@ -27,7 +27,6 @@ import urlparse
 
 import requests
 
-
 # pylint: disable=invalid-name
 
 
@@ -531,17 +530,77 @@ class Schedule(object):
         url = self.schedules.baseObj.fixUrlPath(url)
         self.logger.debug("schedule url now: %s", url)
         header = {'Accept': 'application/json'}
-        response = self.baseObj.deleteResponse(url, header=header, acceptCodes=[204])
+        response = self.baseObj.deleteResponse(url, header=header,
+                                               acceptCodes=[204])
         self.logger.debug("response is: %s", response)
         return response
 
-    def __setEnabledFlag(self, scheduleName, category, enabledFlag):
-        # first make sure the schedule exists, which at the same
-        # time will load the schedule list which can then be
-        # retrieved to determine if the schedule in question
-        # is enable or not, then if its status has changed
-        # we can resubmit that schedule as is but with the
-        # changed enable parameter
+    def updateParameters(self, scheduleName, category, newParams):
+        '''
+        used to update an existing parameter.  Quick fix to support
+        need to be able to automate update of kirk schedules.
+
+        :param scheduleName: Name of the schedule that is to be updated
+        :type scheduleName: str
+        :param category: Name of the category that is to be updated
+        :type category: str
+        :param newParams: a dictionary where the key is the parameter name
+                          and the value is the parameter value.
+        :type newParams: dict
+        '''
+        # makeing the keys all lower case.
+        paramsLowerCase = {}
+        for k, v in newParams.iteritems():
+            paramsLowerCase[k.lower()] = v
+
+        sched2Use = self.__verifyScheduleCategory(scheduleName, category)
+        url = self.__getScheduleCategoryUrl(scheduleName, category)
+        # update the params defined in sched2Use
+        pubParams = sched2Use['request']['publishedParameters']
+        paramCnt = 0
+        for param in pubParams:
+            paramValue = param['value']
+            paramName = param['name']
+            # now iterate through the list of new params
+            if paramName.lower() in paramsLowerCase:
+                pubParams[paramCnt]['value'] = \
+                    paramsLowerCase[paramName.lower()]
+                msg = 'updated {0} from {1} to {2}'.format(
+                    paramName, paramValue, paramsLowerCase[paramName.lower()])
+                self.logger.info(msg)
+            paramCnt += 1
+        sched2Use['request']['publishedParameters'] = pubParams
+        body = sched2Use
+        header = {'Content-Type': 'application/json',
+                  'Accept': 'application/json'}
+        bodyStr = json.dumps(body)
+        resp = self.baseObj.putResponse(url=url, data=bodyStr,
+                                        header=header)
+        return resp
+
+    def __getScheduleCategoryUrl(self, scheduleName, category):
+        catEncode = urllib.quote(category)
+        scheduleNameEncode = urllib.quote(scheduleName)
+        url = self.schedules.baseObj.fixUrlPath(self.schedules.url)
+        url = urlparse.urljoin(url, catEncode)
+        url = self.schedules.baseObj.fixUrlPath(url)
+        url = urlparse.urljoin(url, scheduleNameEncode)
+        return url
+
+    def __verifyScheduleCategory(self, scheduleName, category):
+        '''
+        checks to make sure that a given schedule and category actually
+        exist.  Will also return the data object that is currently associated
+        with a schedule / category.
+
+        :param scheduleName: name of the schedule to verify
+        :type scheduleName: str
+        :param category: name of the category to verify
+        :type category: str
+
+        :return: the data associated with the schedule and category provided
+                 as arguments
+        '''
         if not self.schedules.exists(scheduleName, category):
             msg = 'Cannot enable/disable the schedule: {0} in the category {1} ' + \
                   'as there is no schedule with this name and category'
@@ -555,17 +614,17 @@ class Schedule(object):
                     sched2Use = sched
                     break
         if not sched2Use:
-            msg = "Cannot enable/disable the schedule {0} in the category {1} as " + \
-                  "I am unable to find a schedule that matches this combination"
+            msg = "Cannot enable/disable the schedule {0} in the category" + \
+                  " {1} as I am unable to find a schedule that matches " + \
+                  "this combination"
             msg = msg.format(scheduleName, category)
-            raise ValueError, msg
+            raise ValueError(msg)
+        return sched2Use
 
-        catEncode = urllib.quote(category)
-        scheduleNameEncode = urllib.quote(scheduleName)
-        url = self.schedules.baseObj.fixUrlPath(self.schedules.url)
-        url = urlparse.urljoin(url, catEncode)
-        url = self.schedules.baseObj.fixUrlPath(url)
-        url = urlparse.urljoin(url, scheduleNameEncode)
+    def __setEnabledFlag(self, scheduleName, category, enabledFlag):
+        sched2Use = self.__verifyScheduleCategory(scheduleName, category)
+        url = self.__getScheduleCategoryUrl(scheduleName, category)
+
         validStrings = ['true', 'false']
         if isinstance(enabledFlag, bool):
             if enabledFlag:
@@ -578,7 +637,7 @@ class Schedule(object):
                       'this is not a valid value.  Supply either a boolean value ' + \
                       'or one of the following values: {1}'
                 msg = msg.format(enabledFlag, validStrings)
-                raise ValueError, msg
+                raise ValueError(msg)
             else:
                 enabledFlag = enabledFlag.lower()
         else:
@@ -587,7 +646,7 @@ class Schedule(object):
                   'Supply either a boolean value or a string with one of the ' + \
                   'following values: {2}'
             msg = msg.format(enabledFlag, type(enabledFlag), validStrings)
-            raise ValueError, msg
+            raise ValueError(msg)
 
         if enabledFlag == 'true':
             enabledFlagBool = True
@@ -596,15 +655,16 @@ class Schedule(object):
 
         # before proceed check to see if there is actually a change to the
         # enabled property of it is already set to whatever the target is.
-        if sched2Use[self.const.enabled] <> enabledFlagBool:
+        if sched2Use[self.const.enabled] != enabledFlagBool:
             sched2Use[self.const.enabled] = enabledFlag
             msg = "enabled flag: {0}".format(sched2Use[self.const.enabled])
             self.logger.debug(msg)
             body = sched2Use
             header = {'Content-Type': 'application/json',
-                      'Accept'      : 'application/json'}
+                      'Accept': 'application/json'}
             bodyStr = json.dumps(body)
-            resp = self.baseObj.putResponse(url=url, data=bodyStr, header=header)
+            resp = self.baseObj.putResponse(url=url, data=bodyStr,
+                                            header=header)
         return resp
 
     def disable(self, scheduleName, category):

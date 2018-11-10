@@ -37,17 +37,21 @@ class KirkData(object):
     def getDestinations(self):
         return self.destinations
 
-    def getType(self, type):
-        if type.lower() == 'destinations':
+    def getType(self, dataType):
+        if dataType.lower() == 'destinations':
             return self.destinations
-        if type.lower() == 'jobs':
+        elif dataType.lower() == 'jobs':
             return self.jobs
-        if type.lower() == 'sources':
+        elif dataType.lower() == 'sources':
             return self.sources
-        if type.lower() == 'transformers':
+        elif dataType.lower() == 'transformers':
             return self.transformers
-        if type.lower() == 'fieldMaps':
+        elif dataType.lower() == 'fieldmaps':
             return self.fieldMaps
+        else:
+            msg = "invalid dataType: {0}".format(dataType)
+            logger.debug(msg)
+            raise ValueError(msg)
 
 
 class KirkDataList(object):
@@ -101,6 +105,9 @@ class Job(object):
     def getJobId(self):
         return self.data[self.props.jobid.name]
 
+    def getJobLabel(self):
+        return self.data[self.props.jobLabel.name]
+
     def getRestoreStruct(self):
         p = self.props
         returnObj = {
@@ -116,24 +123,25 @@ class Job(object):
 class Sources(object):
 
     def __init__(self, sourcesData):
-        self.sourcesData = sourcesData
-        self.srcProps = constants.SourceProperties
+        self.data = sourcesData
+        self.props = constants.SourceProperties
 
     def getSource(self, jobId):
         jobSrc = None
-        for src in self.sourcesData:
-            if src[self.srcProps.jobid.name] == jobId:
+        for src in self.data:
+            if src[self.props.jobid.name] == jobId:
                 jobSrc = Source(src)
+        return jobSrc
 
 
 class Source(object):
 
     def __init__(self, sourceData):
-        self.sourceData = sourceData
-        self.srcProps = constants.SourceProperties
+        self.data = sourceData
+        self.props = constants.SourceProperties
 
     def getRestoreStruct(self, jobid=None):
-        p = self.srcProps
+        p = self.props
         returnObj = {
             p.sourceDBSchema.name: self.data[p.sourceDBSchema.name],
             p.sourceType.name: self.data[p.sourceType.name],
@@ -148,18 +156,22 @@ class Source(object):
 
         if jobid is not None:
             returnObj[p.jobid.name] = jobid
+        return returnObj
+
+    def getSourceType(self):
+        return self.data[self.props.sourceType]
 
 
 class Transformers(object):
 
     def __init__(self, transformers):
-        self.transformers = transformers
-        self.transProps = constants.TransformerProperties
+        self.data = transformers
+        self.props = constants.TransformerProperties
 
     def getTransformers(self, jobId):
         transList = []
-        for transformer in self.transformers:
-            if transformer[self.transProps.jobid.name] == jobId:
+        for transformer in self.data:
+            if transformer[self.props.jobid.name] == jobId:
                 transList.append(Transformer(transformer))
         return transList
 
@@ -167,20 +179,61 @@ class Transformers(object):
 class Transformer(object):
 
     def __init__(self, transformer):
-        self.transData = transformer
+        self.data = transformer
+        self.props = constants.TransformerProperties
+
+    def getRestoreStruct(self, jobid=None):
+        p = self.props
+        returnObj = {
+            p.jobid.name: self.data[p.jobid.name],
+            p.transformer_type.name: self.data[p.transformer_type.name],
+            p.ts1_value.name: self.data[p.ts1_value.name],
+            p.ts1_name.name: self.data[p.ts1_name.name],
+            p.ts2_value.name: self.data[p.ts2_value.name],
+            p.ts2_name.name: self.data[p.ts2_name.name],
+            p.ts3_value.name: self.data[p.ts3_value.name],
+            p.ts3_name.name: self.data[p.ts3_name.name],
+            p.ts4_value.name: self.data[p.ts4_value.name],
+            p.ts4_name.name: self.data[p.ts4_name.name],
+            p.ts5_value.name: self.data[p.ts5_value.name],
+            p.ts5_name.name: self.data[p.ts5_name.name],
+            p.ts6_value.name: self.data[p.ts6_value.name],
+            p.ts6_name.name: self.data[p.ts6_name.name]}
+
+        if jobid is not None:
+            returnObj[p.jobid.name] = jobid
+        return returnObj
+
+    def getParameterStruct(self):
+        p = self.props
+        returnObj = {
+            p.ts1_value.name: self.data[p.ts1_value.name],
+            p.ts1_name.name: self.data[p.ts1_name.name],
+            p.ts2_value.name: self.data[p.ts2_value.name],
+            p.ts2_name.name: self.data[p.ts2_name.name],
+            p.ts3_value.name: self.data[p.ts3_value.name],
+            p.ts3_name.name: self.data[p.ts3_name.name],
+            p.ts4_value.name: self.data[p.ts4_value.name],
+            p.ts4_name.name: self.data[p.ts4_name.name],
+            p.ts5_value.name: self.data[p.ts5_value.name],
+            p.ts5_name.name: self.data[p.ts5_name.name],
+            p.ts6_value.name: self.data[p.ts6_value.name],
+            p.ts6_name.name: self.data[p.ts6_name.name]}
+        return returnObj
 
 
 class FieldMaps(object):
 
     def __init__(self, fieldMapData):
-        self.fieldMapData = fieldMapData
-        self.fmProps = constants.FieldmapProperties
+        self.data = fieldMapData
+        self.props = constants.FieldmapProperties
 
     def getFieldMaps(self, jobid):
         fieldMapList = []
-        for fieldMap in self.fieldMapData:
-            if fieldMap[self.fmProps.jobid.name] == jobid:
+        for fieldMap in self.data:
+            if fieldMap[self.props.jobid.name] == jobid:
                 fieldMapList.append(FieldMap(fieldMap))
+        return fieldMapList
 
 
 class FieldMap(object):
@@ -189,15 +242,15 @@ class FieldMap(object):
         self.data = fieldMapData
         self.props = constants.FieldmapProperties
 
-    def getRestoreStruct(self, newJobId=None):
+    def getRestoreStruct(self, jobid=None):
         p = self.props
         returnObj = {
             p.destColumnName.name: self.data[p.destColumnName.name],
             p.fmeColumnType.name: self.data[p.fmeColumnType.name],
             p.sourceColumnName.name: self.data[p.sourceColumnName.name],
             p.jobid.name: self.data[p.jobid.name]}
-        if newJobId is not None:
-            returnObj[p.jobid.name] = newJobId
+        if jobid is not None:
+            returnObj[p.jobid.name] = jobid
         return returnObj
 
 

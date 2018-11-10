@@ -437,6 +437,37 @@ class Transformers(object):
             self.fldMaps = respJson
         return respJson
 
+    def postTransformer2(self, jobid, transformer_type, ts1_name, ts1_value,
+                         ts2_name, ts2_value, ts3_name, ts3_value,
+                         ts4_name, ts4_value, ts5_name, ts5_value,
+                         ts6_name, ts6_value):
+        p = constants.TransformerProperties
+        struct = {p.jobid.name: jobid,
+                  p.transformer_type.name: transformer_type,
+                  p.ts1_name.name: ts1_name,
+                  p.ts1_value.name: ts1_value,
+                  p.ts2_name.name: ts2_name,
+                  p.ts2_value.name: ts2_value,
+                  p.ts3_name.name: ts3_name,
+                  p.ts3_value.name: ts3_value,
+                  p.ts4_name.name: ts4_name,
+                  p.ts4_value.name: ts4_value,
+                  p.ts5_name.name: ts5_name,
+                  p.ts5_value.name: ts5_value,
+                  p.ts6_name.name: ts6_name,
+                  p.ts6_value.name: ts6_value}
+        resp = requests.post(self.transformerUrl,
+                             data=struct,
+                             headers=self.baseObj.authHeader)
+        self.logger.debug("response from transformer post: %s", resp.json())
+        if resp.status_code < 200 or resp.status_code >= 300:
+            msg = constants.POST_NON_200_ERROR_MSG.format(self.transformerUrl,
+                                                          resp.status_code,
+                                                          resp.text)
+            raise APIError(msg)
+        self.getTransformers(force=True)
+        return resp.json()
+
     def postTransformer(self, jobid, transformerType, parameters):
         '''
         :param jobid: the job id the transformer is related to

@@ -6,7 +6,6 @@ Created on Oct 18, 2018
 used to keep track of property names used by fme rest api.
 '''
 from enum import Enum
-from lxml.html.builder import ACRONYM
 
 
 class Schedule(Enum):
