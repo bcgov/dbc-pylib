@@ -14,6 +14,6 @@ setup(name='FMEUtil',
       license='MIT',
       packages=['FMEUtil'],
       install_requires=[
-          'requests', 'lxml', 'deepdiff',
+          'requests', 'lxml', 'deepdiff', 'python-dateutil'
       ],
       zip_safe=False)

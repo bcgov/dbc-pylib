@@ -933,6 +933,36 @@ class Jobs(object):
         self.getJobs(force=True)
         return resp.json()
 
+    def putJob(self, jobid, **params):
+        currentJobParams = self.getJob(jobid)
+        jobsUrl = urlparse.urljoin(self.jobsUrl, str(jobid), True)
+        jobsUrl = self.baseObj.fixUrlPath(jobsUrl)
+        self.logger.debug("put url: %s", jobsUrl)
+        newJobParams = {}
+        for jobProp in constants.JobProperties:
+            if jobProp.name in params:
+                newJobParams[jobProp.name] = params[jobProp.name]
+                self.logger.info("updating the parameter %s to %s",
+                                 jobProp.name,
+                                 jobProp.name)
+            else:
+                newJobParams[jobProp.name] = currentJobParams[jobProp.name]
+        
+                
+                
+        jobProps = constants.JobProperties
+        
+        resp = requests.put(jobsUrl, data=newJobParams,
+                             headers=self.baseObj.authHeader)
+        if resp.status_code < 200 or resp.status_code >= 300:
+            msg = constants.DELETE_NON_200_ERROR_MSG.format(
+                self.jobsUrl, resp.status_code, resp.text)
+            raise APIError(msg)
+
+        self.logger.debug('response status code: %s', resp.status_code)
+        #self.getJobs(force=True)
+        return resp
+
     def addJobs(self, jobStatus, cronStr, destField, jobLabel, destSchema,
                 destTableName):
         '''

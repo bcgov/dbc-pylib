@@ -856,6 +856,7 @@ class EnvironmentManager(object):
                       'in the secrets file {1}'
                 raise ValueError(msg.format(
                     self.const.secrets_env_var, secretsFileFullPath))
+        self.logger.debug("secretString: %s", secretString)
         struct = json.loads(secretString)
         self.secretsStruct = struct
 

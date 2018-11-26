@@ -1,9 +1,8 @@
 from enum import Enum
 
 KIRKENV = {'DEV': 'kirk_dev',
-            'TST': 'kirk_tst',
-            'PRD': 'kirk_prd'}
-
+           'TST': 'kirk_tst',
+           'PRD': 'kirk_prd'}
 
 class KirkApiPaths():
     '''

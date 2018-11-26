@@ -11,18 +11,32 @@ import FMEConstants
 import logging
 import KirkUtil.constants
 import sys
-from ctypes.test.test_array_in_pointer import Value
+import dateutil.parser
 
 
 class Schedules(object):
+    '''
+    wraps a schedule list with a various utility methods that allow the
+    list to be interogated
+    '''
 
     def __init__(self, schedulesData):
         self.logger = logging.getLogger(__name__)
         print 'name:', __name__
         self.logger.debug("logger created for {0}!".format(__name__))
         self.data = schedulesData
+        self.curIter = 0
 
     def exists(self, scheduleName, casesensitve=False):
+        '''
+        :param scheduleName: name of the schedule who's existence is to be
+                             determined
+        :type scheduleName: str
+        :param casesensitve: inidcates whether the schedule name should be
+                             evaluated as a case sensitive string or not.
+        :type casesensitve: bool
+        '''
+
         schedExists = False
         for schedData in self.data:
             sched = Schedule(schedData)
@@ -38,8 +52,50 @@ class Schedules(object):
                 break
         return schedExists
 
+    def getFMWRepositorySchedule(self,
+                                 repositoryName,
+                                 fmwName,
+                                 caseSensitive=False):
+        '''
+        iterates through all the schedules looking for one that is tied to
+        the given repository name / fmw name.
+
+        If no schedule is found will return None
+
+        :param repositoryName: the name of the repository associated with
+                               the returned schedule
+        :param fmwName: the name of the fmw associated with the returned
+                        schedule
+        :param caseSensitive: whether the schedule / repository comparison
+                              should take place using case sensitivity
+        '''
+        retVal = None
+        if not caseSensitive:
+            fmwName = fmwName.lower()
+            repositoryName = repositoryName.lower()
+        for schedule in self:
+            schedFMWName = schedule.getFMWName()
+            schedRepoName = schedule.getRepository()
+            if not caseSensitive:
+                schedFMWName = schedFMWName.lower()
+                schedRepoName = schedRepoName.lower()
+            if repositoryName == schedRepoName:
+                # self.logger.debug("schedFMWName: %s", schedFMWName)
+                # self.logger.debug("fmwName: %s", fmwName)
+                # self.logger.debug("repositoryName: %s", repositoryName)
+                # self.logger.debug("schedRepoName: %s", schedRepoName)
+                if schedFMWName == fmwName:
+                    # self.logger.debug("found: %s", fmwName)
+                    retVal = schedule.getScheduleName()
+                    # self.logger.debug("schedule name: %s", retVal)
+                    self.reset()
+                    break
+        return retVal
+
     def kirkScheduleExists(self, kirkJobId, kirkType):
         '''
+        specific to Kirk Jobs, returns the schedule associated with
+        the particular kirkid provided
 
         :param kirkJobId: The job id for a kirk job who's existence is
                           being queried
@@ -61,12 +117,13 @@ class Schedules(object):
         for schedData in self.data:
             sched = Schedule(schedData)
             fmwName = sched.getFMWName()
-            # self.logger.debug("schedName: %s", fmwName)
+            self.logger.debug("fmw comparison sched fmw: %s", fmwName)
             if fmwName.lower() == kirkFmwName.lower():
                 # now get the jobid associated with this job
                 self.logger.debug("found the fmw: %s", fmwName)
                 pp = sched.getPublishedParameters()
                 ppKirkJobId = pp.getKirkJobId()
+                self.logger.debug("kirk job id: %s",)
                 if unicode(ppKirkJobId) == unicode(kirkJobId):
                     retVal = True
                     self.logger.debug("found match for %s", ppKirkJobId)
@@ -74,6 +131,20 @@ class Schedules(object):
         return retVal
 
     def getSchedule(self, scheduleName, casesensitve=False):
+        '''
+        returns the schedule object if one is found with the name
+        provided
+        :param scheduleName: name of the schedule to be returned
+        :type scheduleName: str
+        :param casesensitve: whether to consider case when searching for
+                             the job
+        :type casesensitve: bool
+
+        :return: the Schedule object for the requested schedule if one
+                 is found, otherwise None
+        :rtype: Schedule
+        '''
+
         schedule = None
         for schedData in self.data:
             sched = Schedule(schedData)
@@ -86,6 +157,27 @@ class Schedules(object):
                 schedule = sched
                 break
         return schedule
+
+    def __iter__(self):
+        return self
+
+    def next(self):
+        '''
+        iterator for these schedules, returning a Schedule object for
+        each loop.
+        '''
+        if self.curIter >= len(self.data):
+            self.reset()
+            raise StopIteration
+        else:
+            #self.logger.debug("getting the next item, %s", self.curIter)
+            schedData = self.data[self.curIter]
+            schedObj = Schedule(schedData)
+            self.curIter += 1
+        return schedObj
+
+    def reset(self):
+        self.curIter = 0
 
 
 class Schedule(object):
@@ -106,9 +198,9 @@ class Schedule(object):
         the schedule departs from the standard case this should retrieve the
         correct case.
         '''
-        self.logger.debug("retrieving the schedule name")
+        #self.logger.debug("retrieving the schedule name")
         key = FMEConstants.Schedule.name.name
-        self.logger.debug("key is: %s", key)
+        #self.logger.debug("key is: %s", key)
         return self.data[key]
 
     def getPublishedParameters(self):
@@ -116,7 +208,7 @@ class Schedule(object):
         publishedParameters = FMEConstants.Schedule.publishedParameters.name
         schedulePubParams = self.data[request][publishedParameters]
         pubparams = SchedulePublishedParameters(schedulePubParams)
-        self.logger.debug("pub params: %s", unicode(pubparams))
+        #self.logger.debug("pub params: %s", unicode(pubparams))
         return pubparams
 
     def getCategory(self):
@@ -146,12 +238,28 @@ class Schedule(object):
         key = FMEConstants.Schedule.repository.name
         return self.data[key]
 
+    def isEnabled(self):
+        '''
+        :return: bool indicating whether the current schedule is
+                 enabled or disabled
+        '''
+        key = FMEConstants.Schedule.enabled.name
+        enable = self.data[key]
+        if not isinstance(enable, bool):
+            # assume its a str
+            enablestr = enable.lower()
+            enable = False
+            if enablestr == 'true':
+                enable = True
+        return enable
+
 
 class SchedulePublishedParameters(object):
 
     def __init__(self, data):
         self.logger = logging.getLogger(__name__)
         self.data = data
+        self.curIter = 0
 
     def getDestinationSchema(self, position=None):
         '''
@@ -211,6 +319,10 @@ class SchedulePublishedParameters(object):
             self.logger.warning(msg, destFeatParamName)
         return param
 
+    def getDestDbEnvKey(self):
+        destDbEnv = self.getParamValue('DEST_DB_ENV_KEY')
+        return destDbEnv
+
     def paramExists(self, paramName):
         param = self.getParamValue(paramName)
         retVal = True
@@ -220,7 +332,7 @@ class SchedulePublishedParameters(object):
 
     def getParamValue(self, paramName):
         retVal = None
-        self.logger.debug("paramName: %s", paramName)
+        #self.logger.debug("paramName: %s", paramName)
         for param in self.data:
             if param['name'] == paramName:
                 # sometimes the data is stored in a parameter called 'raw'
@@ -256,3 +368,122 @@ class SchedulePublishedParameters(object):
 
     def __str__(self):
         return self.__unicode__()
+
+    def __iter__(self):
+        return self
+
+    def next(self):
+        if self.curIter >= len(self.data):
+            self.reset()
+            raise StopIteration
+        else:
+            self.logger.debug("getting the next item, %s", self.curIter)
+            pubParam = self.data[self.curIter]
+            pubParamData = PublishedParameter(pubParam)
+            self.curIter += 1
+        return pubParamData
+
+    def reset(self):
+        self.curIter = 0
+
+
+class PublishedParameter(object):
+
+    def __init__(self, data):
+        self.data = data
+        self.logger = logging.getLogger(__name__)
+        self.logger.debug('PublishedParameter data: %s', data)
+
+    def getName(self):
+        return self.data['name']
+
+    def getValue(self):
+        retVal = None
+        if 'value' in self.data:
+            retVal = self.data['value']
+        elif 'raw' in self.data:
+            retVal = self.data['raw']
+        else:
+            msg = 'No defined value: %s', self.data
+            raise ValueError(msg)
+        return retVal
+
+
+class Workspaces(object):
+
+    def __init__(self, data):
+        self.logger = logging.getLogger(__name__)
+        self.data = data
+        self.curIter = 0
+        self.workspaceNames = None
+
+    def populateworkspaceNames(self):
+        self.workspaceNames = self.data.keys()
+        self.workspaceNames.sort()
+
+    def __iter__(self):
+        return self
+
+    def next(self):
+        '''
+        iterator for these workspaces, returning a workspace object for
+        each loop.
+        '''
+        if self.curIter >= len(self.data):
+            raise StopIteration
+        else:
+            if self.workspaceNames is None:
+                self.populateworkspaceNames()
+            wrkspaceNameKey = self.workspaceNames[self.curIter]
+            wrkspceData = self.data[wrkspaceNameKey]
+            wrkspcObj = Workspace(wrkspceData)
+            self.curIter += 1
+        return wrkspcObj
+
+
+class Workspace(object):
+
+    def __init__(self, data):
+        self.data = data
+        self.logger = logging.getLogger(__name__)
+        # self.curIter = 0
+
+    def getWorkspaceName(self):
+        '''
+        :return: the workspace name, ie what is the underlying fmw.
+        '''
+        key = FMEConstants.Workspace.name.name
+        return self.data[key]
+
+    def getLastSaveDate(self):
+        key = FMEConstants.Workspace.lastSaveDate.name
+        param = self.data[key]
+        # best way to parse iso8601 datetimes
+        saveDate = dateutil.parser.parse(param)
+        return saveDate
+
+    def getLastPublishedDate(self):
+        key = FMEConstants.Workspace.lastPublishDate.name
+        param = self.data[key]
+        # best way to parse iso8601 datetimes
+        pubDate = dateutil.parser.parse(param)
+        return pubDate
+
+    def getRepositoryName(self):
+        key = FMEConstants.Workspace.repositoryName.name
+        return self.data[key]
+
+
+class WorkspaceInfo(object):
+    '''
+    wraps the data that gets returned by
+    /fmerest/apidoc/v3/#!/repositories/get_get_9
+    '''
+
+    def __init__(self, data):
+        self.logger = logging.getLogger(__name__)
+        self.data = data
+
+    def getSources(self):
+        pass
+

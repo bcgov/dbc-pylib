@@ -97,11 +97,11 @@ This example shows how you can set up a 'label' that returns a single 'secret' s
 
 ``` python
 # importing the module
-import Secrets.GetSecrets
+import DBCSecrets.GetSecrets
 # define the label in the json file that we want to retrieve
 credLabel = 'label4FilePath'
 # create credential retrieval object
-credRetrieval = Secrets.GetSecrets.CredentialRetriever()
+credRetrieval = DBCSecrets.GetSecrets.CredentialRetriever()
 # get a miscellaneous parameters object
 miscParams = credRetrieval.getMiscParams()
 # retrieve a parameter by its label
@@ -144,13 +144,13 @@ This same method can be used to retrieve a variety of parameter types. In this e
 #### PYTHON CODE: 
 
 ``` python
-import Secrets.GetSecrets 
+import DBCSecrets.GetSecrets 
 # these are the labels associated with secrets that
 # we are trying to retrieve from secrets file
 filePathLabel = 'label4FilePath'
 oracleAccountLabel = 'test_accnt_dlv'
 # creating a CredentialRetriever object
-credRetrieval = Secrets.GetSecrets.CredentialRetriever()
+credRetrieval = DBCSecrets.GetSecrets.CredentialRetriever()
 # retrieve an individual account secret object
 #   - this method extracts an entry by label from the secrets files
 #     section: secrets2get
@@ -203,14 +203,14 @@ If you know the account name who's password you require use the 'Single Database
 #### PYTHON CODE: $PROJDIR/src/pmpExample.
 
 ```
-import Secrets.GetSecrets  # @UnresolvedImport
+import DBCSecrets.GetSecrets  # @UnresolvedImport
 # these are the labels associated with secrets that
 # we are trying to retrieve from secrets file
 filePathLabel = 'label4FilePath'
 oracleAccountLabel = 'test_accnt_dlv'
 multiAccountLabel = 'multipleOra'
 # creating a CredentialRetriever object
-credRetrieval = Secrets.GetSecrets.CredentialRetriever()
+credRetrieval = DBCSecrets.GetSecrets.CredentialRetriever()
 # get a multiaccount setup
 multiAccnt = credRetrieval.getMultiAccounts()
 # now get account by name.  This is a very simple example
@@ -331,8 +331,8 @@ This is not an exhaustive documentation of the api, but instead a highlight of w
 
 All credential retrieval starts with these two lines:
 
-**`import Secrets.GetSecrets`
- `credRetrieval = Secrets.GetSecrets.CredentialRetriever()`**
+**`import DBCSecrets.GetSecrets`
+ `credRetrieval = DBCSecrets.GetSecrets.CredentialRetriever()`**
 
 The second line is creating a CredentialRetriever object.  While it should not matter to you, what this method is doing behind the scenes is:
 
@@ -387,7 +387,7 @@ Goes into the json struct, the multiaccount section can be made up of any number
 While you can set up your scripts projects any way you want, if we stick with a standard it should make it easier for other people to use your scripts, contribute to your projects, and generally understand how they work.  The secrets module expects the secrets to be a directory called *secrets* and inside that directory there to be 
 a secrets.json file.  You can override these defaults also by specifying the location of the secrets file when you create your secret object, example:
 
-'secrt = Secrets.GetSecrets.CredentialRetriever("path/to/secrets.json")'
+'secrt = DBCSecrets.GetSecrets.CredentialRetriever("path/to/secrets.json")'
 
 ## Dealing with Dependencies
 

@@ -10,9 +10,8 @@ save a bunch of time.
 
 '''
 import datetime
-import Secrets
 import FMEUtil.PyFMEServerV2 as FMEServer
-import Secrets.GetSecrets
+import DBCSecrets.GetSecrets
 import logging
 import time
 import os
@@ -40,7 +39,7 @@ class FMEIterator(object):
             self.skipList = []
             
         # retrieving the credentials
-        creds = Secrets.GetSecrets.CredentialRetriever(secretsFile)
+        creds = DBCSecrets.GetSecrets.CredentialRetriever(secretsFile)
         self.logger.debug("secret key is: {0}".format(fmeKey))
         srcFMECreds = creds.getSecretsByLabel(fmeKey)
         hostName = srcFMECreds.getHost()
@@ -324,7 +323,7 @@ class Status(object):
         self.const = Constants()
         self.repoName = repoName
         self.fmw = fmw
-        curRunStatusDir = 'RunAsync_{0}'.format(env)
+        curRunStatusDir = 'RunAsync2_{0}'.format(env)
         statusDir = os.path.join(os.path.dirname(__file__),
                                  '..',
                                  self.const.statusDir)
