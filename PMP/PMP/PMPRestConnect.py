@@ -8,8 +8,7 @@ to the PMP rest interface from python
 '''
 import logging
 import os.path
-import urlparse
-
+from urllib.parse import urlparse
 import requests
 
 

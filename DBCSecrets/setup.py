@@ -7,6 +7,7 @@ Created on Feb 8, 2017
 from setuptools import setup
 
 setup(name='DBCSecrets',
+      python_requires='>3.6.0',
       version='0.3',
       description='an api to retrieve secrets, see () for more details',
       url='https://github.com/bcgov/dbc-pylib/tree/master/DBCSecrets',

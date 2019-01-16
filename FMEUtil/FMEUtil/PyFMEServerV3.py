@@ -23,7 +23,7 @@ import os.path
 import pprint
 import re
 import urllib
-import urlparse
+from urllib.parse import urlparse
 
 import requests
 
@@ -59,7 +59,7 @@ class FMERestBase(object):
         self.baseurl = baseurl
         # self.restUrl = self.baseurl + '/' +  'fmerest'
         restDir = 'fmerest/v3/'
-        self.restUrl = urlparse.urljoin(self.baseurl, restDir)
+        self.restUrl = urllib.parse.urljoin(self.baseurl, restDir)
         self.token = token
         self.repositoryDir = 'repositories'
         self.scheduleDir = 'schedules'
@@ -98,14 +98,15 @@ class FMERestBase(object):
         payloadDict = self.payloadDict.copy()
         if additionalParams:
             payloadDict.update(additionalParams)
-        if not payloadDict.has_key('accept'):
+        if 'accept' not in payloadDict:
             payloadDict['accept'] = returnType
-        if payloadDict['accept'] <> returnType:
+        if payloadDict['accept'] != returnType:
             payloadDict['accept'] = returnType
         return payloadDict
 
-    def getResponse(self, url, returnType='json', additionalParams=None, header=None, \
-                    body=None, dontErrorStatusCodes=None, returnRequestObj=False):
+    def getResponse(self, url, returnType='json', additionalParams=None,
+                    header=None, body=None, dontErrorStatusCodes=None,
+                    returnRequestObj=False):
         '''
         generic method for handling get requests.
         '''
@@ -124,17 +125,19 @@ class FMERestBase(object):
         payloadDict = self.preUrl(url, returnType, additionalParams)
 
         if returnType == 'raw':
-            if payloadDict.has_key('accept'):
+            if 'accept' in payloadDict:
                 del payloadDict['accept']
-            r = requests.get(url, params=payloadDict, stream=True, headers=header, data=body)
+            r = requests.get(url, params=payloadDict, stream=True,
+                             headers=header, data=body)
             self.logger.debug("request is made with 'raw'")
         else:
-            r = requests.get(url, params=payloadDict, headers=header, data=body)
-        if r.status_code <> 200 and r.status_code not in dontErrorStatusCodes:
+            r = requests.get(url, params=payloadDict, headers=header,
+                             data=body)
+        if r.status_code != 200 and r.status_code not in dontErrorStatusCodes:
             msg = 'Request did not succeed!  Status Code is: {0} and ' + \
                   'returned body is {1}'
             msg = msg.format(r.status_code, r.text)
-            raise ValueError, msg
+            raise ValueError(msg)
         if returnType == 'json':
             response = r.json()
         elif returnType == 'text':
@@ -145,7 +148,8 @@ class FMERestBase(object):
             response = r
         return response
 
-    def deleteResponse(self, url, returnType='json', data='', header=None, acceptCodes=None):
+    def deleteResponse(self, url, returnType='json', data='', header=None,
+                       acceptCodes=None):
         '''
         generic method for handling delete requests.
         '''
@@ -169,16 +173,17 @@ class FMERestBase(object):
         AcceptableStatusCodes = [200, 201, 204]
         if acceptCodes:
             AcceptableStatusCodes = AcceptableStatusCodes + acceptCodes
-        if not r.status_code in AcceptableStatusCodes:
+        if r.status_code not in AcceptableStatusCodes:
             msg = 'Received the error code: {0} when trying to ' + \
                   'request the url with delete method {1} encoded url is {2}'
             msg = msg.format(r.status_code, url, r.url)
             self.logger.debug("rtext: %s", r.text)
             self.logger.debug("result: %s", r)
-            raise ValueError, msg
+            raise ValueError(msg)
         return r
 
-    def putResponse(self, url, returnType='json', data='', header=None, params=None):
+    def putResponse(self, url, returnType='json', data='', header=None,
+                    params=None):
         '''
         generic method for put requests
         '''
@@ -192,20 +197,20 @@ class FMERestBase(object):
         if not header:
             header = defaultHeader
         else:
-            if not 'Authorization' in header:
+            if 'Authorization' not in header:
                 header['Authorization'] = self.tokenHeaderValue
         params = self.preUrl(url, returnType, params)
         self.logger.debug("url: %s", url)
         self.logger.debug("data: %s", data)
         r = requests.put(url=url, headers=header, data=data)
         response = None
-        if not r.status_code in [200, 204]:
+        if r.status_code not in [200, 204]:
             msg = 'Received the error code: {0} when trying to ' + \
                   'put the job {1}'
             msg = msg.format(r.status_code, url)
             self.logger.debug("r.text: %s", r.text)
             self.logger.debug("result: %s", r)
-            raise ValueError, msg
+            raise ValueError(msg)
         if returnType == 'json':
             if r.text:
                 response = r.json()
@@ -215,11 +220,12 @@ class FMERestBase(object):
             response = r.raw
         return response
 
-    def postResponseFormData(self, url, returnType='json', data='', header=None, params=None):
+    def postResponseFormData(self, url, returnType='json', data='',
+                             header=None, params=None):
         '''
-        generic method for post requests, that use form data, could probably merge
-        this with the method postResponse.  This method used to be required for
-        older version of the fme api.
+        generic method for post requests, that use form data, could
+        probably merge this with the method postResponse.  This method used
+        to be required for older version of the fme api.
         '''
         if header is None:
             header = {}
@@ -231,7 +237,7 @@ class FMERestBase(object):
                       'Authorization':  self.tokenHeaderValue}
         else:
             # make sure the header has the authorization
-            if not 'Authorization' in header:
+            if 'Authorization' not in header:
                 header['Authorization'] = self.tokenHeaderValue
         if params:
             r = requests.post(url, data=data, headers=header, params=params)
@@ -253,7 +259,8 @@ class FMERestBase(object):
             response = r.raw
         return response
 
-    def postResponse(self, url, returnType='json', data=None, header=None, params=None):
+    def postResponse(self, url, returnType='json', data=None,
+                     header=None, params=None):
         '''
         Generic post request.
         '''
@@ -279,11 +286,11 @@ class FMERestBase(object):
                       'Content-Type': 'application/json'}
 
         r = requests.post(url, data=data, headers=header, params=payloadDict)
-        if not r.status_code in [200, 201, 202]:
+        if r.status_code not in [200, 201, 202]:
             msg = 'Received the error code: {0} when trying to ' + \
                   'schedule the job {1} {2}'
             msg = msg.format(r.status_code, url, r.text)
-            raise ValueError, msg
+            raise ValueError(msg)
         response = None
         if r.text:
             if returnType == 'json':
@@ -296,8 +303,8 @@ class FMERestBase(object):
 
     def getURL(self, url, returnType='json', additionalParams=None):
         '''
-        prepares a request and returns the url that will be used for the request
-        with the parameter string
+        prepares a request and returns the url that will be used for the
+        request with the parameter string
         '''
         if additionalParams is None:
             additionalParams = {}
@@ -372,9 +379,10 @@ class Logs(object):
         # example of v1 url to a log
         # V2 logs are moved under the jobs.
         # category for jobs: completed | running | queued
-        self.url = urlparse.urljoin(self.baseObj.restUrl, self.baseObj.jobsDir, True)
+        self.url = urllib.parse.urljoin(self.baseObj.restUrl,
+                                        self.baseObj.jobsDir, True)
         self.url = self.baseObj.fixUrlPath(self.url)
-        self.url = urlparse.urljoin(self.url, 'jobs', True)
+        self.url = urllib.parse.urljoin(self.url, 'jobs', True)
         self.url = self.baseObj.fixUrlPath(self.url)
 
     def getLog(self, logId):
@@ -395,7 +403,8 @@ class Schedules(object):
         self.logger = logging.getLogger(__name__)
         self.schedsList = None
         self.const = JSONConstants()
-        self.url = urlparse.urljoin(self.baseObj.restUrl, self.baseObj.scheduleDir, True)
+        self.url = urllib.parse.urljoin(self.baseObj.restUrl,
+                                        self.baseObj.scheduleDir, True)
 
     def getSchedule(self):
         '''
@@ -456,7 +465,7 @@ class Schedules(object):
             if category:
                 msg = msg + ' and the category {0}'
                 msg = msg.format(category)
-            raise ValueError, msg
+            raise ValueError(msg)
         # exists should have cached the schedules list so can now
         # reuse to get the parameters
         retVal = None
@@ -524,9 +533,9 @@ class Schedule(object):
         :return: response object
         '''
         url = self.schedules.baseObj.fixUrlPath(self.schedules.url)
-        url = urlparse.urljoin(url, category)
+        url = urllib.parse.urljoin(url, category)
         url = self.schedules.baseObj.fixUrlPath(url)
-        url = urlparse.urljoin(url, scheduleName)
+        url = urllib.parse.urljoin(url, scheduleName)
         url = self.schedules.baseObj.fixUrlPath(url)
         self.logger.debug("schedule url now: %s", url)
         header = {'Accept': 'application/json'}
@@ -579,12 +588,12 @@ class Schedule(object):
         return resp
 
     def __getScheduleCategoryUrl(self, scheduleName, category):
-        catEncode = urllib.quote(category)
-        scheduleNameEncode = urllib.quote(scheduleName)
+        catEncode = urllib.parse.quote(category)
+        scheduleNameEncode = urllib.parse.quote(scheduleName)
         url = self.schedules.baseObj.fixUrlPath(self.schedules.url)
-        url = urlparse.urljoin(url, catEncode)
+        url = urllib.parse.urljoin(url, catEncode)
         url = self.schedules.baseObj.fixUrlPath(url)
-        url = urlparse.urljoin(url, scheduleNameEncode)
+        url = urllib.parse.urljoin(url, scheduleNameEncode)
         return url
 
     def __verifyScheduleCategory(self, scheduleName, category):
@@ -605,7 +614,7 @@ class Schedule(object):
             msg = 'Cannot enable/disable the schedule: {0} in the category {1} ' + \
                   'as there is no schedule with this name and category'
             msg = msg.format(scheduleName, category)
-            raise ValueError, msg
+            raise ValueError(msg)
         # now we have the schedule list in self.schedules.schedsList
         sched2Use = None
         for sched in self.schedules.schedsList:
@@ -700,11 +709,11 @@ class Log(object):
 
         logId = str(logId)
         # logRequestType = 'download'  # options view|download
-        self.url = urlparse.urljoin(logs.url, 'id')
+        self.url = urllib.parse.urljoin(logs.url, 'id')
         self.url = logs.baseObj.fixUrlPath(self.url)
-        self.url = urlparse.urljoin(self.url, logId)
+        self.url = urllib.parse.urljoin(self.url, logId)
         self.url = logs.baseObj.fixUrlPath(self.url)
-        self.url = urlparse.urljoin(self.url, 'log')
+        self.url = urllib.parse.urljoin(self.url, 'log')
         self.url = logs.baseObj.fixUrlPath(self.url)
         self.logger.debug("log url is: %s", self.url)
         self.logs = logs
@@ -803,7 +812,8 @@ class Log(object):
             r'+\|\s*\d+\.\d+\|STATS\s*\|\s*Total\s+Features\s+Read\s+\d+$'
         srchStr = r'^\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}\s*\|\s*\d+\.\d+' + \
             r'\|\s*\d+\.\d+\|STATS\s*\|\s*'
-        retData = self.extractFromLog(StartRegexStr, ExtractRegexStr, EndRegexStr, srchStr)
+        retData = self.extractFromLog(StartRegexStr, ExtractRegexStr,
+                                      EndRegexStr, srchStr)
         return retData
 
 
@@ -819,16 +829,19 @@ class Jobs(object):
         # job types: # 'completed', 'running' or 'queued'.
         # http://fmeserver/fmerest/v2/transformations/jobs/completed?
         # detail=low&limit=-1&offset=-1
-        self.transformationsUrl = urlparse.urljoin(self.baseObj.restUrl,
-                                                   self.baseObj.jobsDir, True)
-        self.transformationsUrl = self.baseObj.fixUrlPath(self.transformationsUrl)
-        self.url = urlparse.urljoin(self.transformationsUrl, 'jobs', True)
+        self.transformationsUrl = urllib.parse.urljoin(
+            self.baseObj.restUrl,
+            self.baseObj.jobsDir,
+            True)
+        self.transformationsUrl = self.baseObj.fixUrlPath(
+            self.transformationsUrl)
+        self.url = urllib.parse.urljoin(self.transformationsUrl, 'jobs', True)
         self.url = self.baseObj.fixUrlPath(self.url)
 
-        # when retrieving jobs from fme server, and the queue gets to the end of
-        # of the job list it will return a null object. The null object won't trigger
-        # the end of the loop.  This parameter sets the number of blank pages
-        # to read before the loop is closed.
+        # when retrieving jobs from fme server, and the queue gets to the
+        # end of of the job list it will return a null object. The null
+        # object won't trigger the end of the loop.  This parameter sets
+        # the number of blank pages to read before the loop is closed.
         self.jobNullPagesToEndLoop = 2
         self.jobNullPagesRead = 0
 
@@ -838,7 +851,7 @@ class Jobs(object):
         '''
         # returns a dictionary which is indexed by job id.
         # down the road can enhance this method to allow for time queries
-        url = urlparse.urljoin(self.url, jobType, True)
+        url = urllib.parse.urljoin(self.url, jobType, True)
 
         jobs = {}
         params = {}
@@ -848,7 +861,8 @@ class Jobs(object):
             params['offset'] = 0
         if offset:
             params['offset'] = str(offset)
-        print 'params:', params
+        self.logger.debug('params: {0}'.format(params))
+        #print 'params:', params
         response = self.baseObj.getResponse(url, additionalParams=params)
         cnt = 0
         for job in response[self.const.items]:
@@ -927,13 +941,13 @@ class Jobs(object):
         url = self.transformationsUrl
         url = self.baseObj.fixUrlPath(url)
         if sync:
-            url = urlparse.urljoin(url, 'transact')
+            url = urllib.parse.urljoin(url, 'transact')
         else:
-            url = urlparse.urljoin(url, 'submit')
+            url = urllib.parse.urljoin(url, 'submit')
         url = self.baseObj.fixUrlPath(url)
-        url = urlparse.urljoin(url, repoName)
+        url = urllib.parse.urljoin(url, repoName)
         url = self.baseObj.fixUrlPath(url)
-        url = urlparse.urljoin(url, jobName)
+        url = urllib.parse.urljoin(url, jobName)
         self.logger.debug("url is: %s", url)
         paramsStruct = []
         body = {}
@@ -981,9 +995,9 @@ class Job(object):
     def __init__(self, jobs, jobId):
         self.jobId = jobId
         # http://server/fmerest/v2/transformations/jobs/id/9021?accept=json&detail=high
-        self.url = urlparse.urljoin(jobs.url, 'id')
+        self.url = urllib.parse.urljoin(jobs.url, 'id')
         self.url = jobs.baseObj.fixUrlPath(self.url)
-        self.url = urlparse.urljoin(self.url, str(jobId))
+        self.url = urllib.parse.urljoin(self.url, str(jobId))
         self.url = jobs.baseObj.fixUrlPath(self.url)
         self.baseObj = jobs.baseObj
         # self.url = urlparse.urljoin(jobs.url, str(jobId) + jobs.baseObj.dataType)
@@ -1025,7 +1039,7 @@ class Repository(object):
         self.const = JSONConstants()
         self.repos = []
         self.pp = pprint.PrettyPrinter(indent=4)
-        self.url = urlparse.urljoin(self.baseObj.restUrl, self.baseObj.repositoryDir, True)
+        self.url = urllib.parse.urljoin(self.baseObj.restUrl, self.baseObj.repositoryDir, True)
 
     def fetchRepositories(self):
         '''
@@ -1079,7 +1093,7 @@ class Repository(object):
         repoNames = self.getRepositoryNames()
         self.logger.debug("repoNames: %s", repoNames)
         if repoName not in  repoNames:
-            raise InvalidRepositoryNameException, (repoName, self.url)
+            raise InvalidRepositoryNameException(repoName, self.url)
         wrkSpace = Workspaces(self, self.repos[repoName])
         return wrkSpace
 
@@ -1101,9 +1115,9 @@ class Repository(object):
         # url example
         # http://host/fmerest/v2/repositories/Samples/items?accept=json&detail=high
         itemUrl = self.baseObj.fixUrlPath(self.url)
-        itemUrl = urlparse.urljoin(itemUrl, repoName)
+        itemUrl = urllib.parse.urljoin(itemUrl, repoName)
         itemUrl = self.baseObj.fixUrlPath(itemUrl)
-        itemUrl = urlparse.urljoin(itemUrl, 'items')
+        itemUrl = urllib.parse.urljoin(itemUrl, 'items')
         self.logger.debug("itemUrl: %s)", itemUrl)
         baseName = os.path.basename(fmwPath)
         headers = {'Content-Disposition': 'attachment; filename="' + str(baseName) + '"',
@@ -1112,7 +1126,8 @@ class Repository(object):
         dataPayload = open(fmwPath, 'rb')
         params = {'type': 'WORKSPACE'}
         response = self.baseObj.postResponseFormData(itemUrl, params=params,
-                                                     header=headers, data=dataPayload)
+                                                     header=headers, 
+                                                     data=dataPayload)
         self.logger.debug("response from post: %s", response)
         dataPayload.close()
 
@@ -1130,11 +1145,11 @@ class Repository(object):
         justFMW = os.path.basename(fmwPath)
         # itemUrl = self.baseObj.fixUrlPath(self.url)
         itemUrl = self.baseObj.fixUrlPath(self.url)
-        itemUrl = urlparse.urljoin(itemUrl, repoName)
+        itemUrl = urllib.parse.urljoin(itemUrl, repoName)
         itemUrl = self.baseObj.fixUrlPath(itemUrl)
-        itemUrl = urlparse.urljoin(itemUrl, 'items')
+        itemUrl = urllib.parse.urljoin(itemUrl, 'items')
         itemUrl = self.baseObj.fixUrlPath(itemUrl)
-        itemUrl = urlparse.urljoin(itemUrl, justFMW)
+        itemUrl = urllib.parse.urljoin(itemUrl, justFMW)
         self.logger.debug("itemUrl: %s", itemUrl)
         headers = {'Content-Disposition': 'attachment; filename="' + str(fmwPath) + '"',
                    'Content-Type': 'application/octet-stream',
@@ -1191,7 +1206,7 @@ class Repository(object):
             # Accept: application/json
             # dataPayload = {'description': descr,
             #               'name':repName}
-            descr = urllib.quote_plus(descr)
+            descr = urllib.parse.quote_plus(descr)
             dataPayload = 'description={0}&name={1}'.format(descr, repName)
             self.logger.debug('dataPayload: %s', dataPayload)
             # dataPayload = urllib.quote_plus(dataPayload)
@@ -1209,7 +1224,7 @@ class Repository(object):
         :param repName:  the repository that you want to delete
         '''
         itemUrl = self.baseObj.fixUrlPath(self.url)
-        itemUrl = urlparse.urljoin(itemUrl, repName)
+        itemUrl = urllib.parse.urljoin(itemUrl, repName)
 
         self.logger.debug("url is: %s", itemUrl)
         if self.exists(repName):
@@ -1230,11 +1245,11 @@ class Workspaces(object):
         self.baseObj = self.repos.baseObj
         self.pp = pprint.PrettyPrinter(indent=4)
         # http://server/fmerest/v2/repositories/Samples/items?detail=low
-        self.url = urlparse.urljoin(self.baseObj.restUrl, self.baseObj.repositoryDir)
+        self.url = urllib.parse.urljoin(self.baseObj.restUrl, self.baseObj.repositoryDir)
         self.url = self.baseObj.fixUrlPath(self.url)
-        self.url = urlparse.urljoin(self.url, self.repoName)
+        self.url = urllib.parse.urljoin(self.url, self.repoName)
         self.url = self.baseObj.fixUrlPath(self.url)
-        self.url = urlparse.urljoin(self.url, 'items')
+        self.url = urllib.parse.urljoin(self.url, 'items')
         self.logger.info("workspace url: %s", self.url)
         self.workspaces = {}
 
@@ -1278,7 +1293,7 @@ class Workspaces(object):
     def getWorkspaceInfo(self, wrkspcName):
         '/repositories/< repository >/items/< item'
         url = self.baseObj.fixUrlPath(self.url)
-        url = urlparse.urljoin(url, wrkspcName)
+        url = urllib.parse.urljoin(url, wrkspcName)
         header = {'Accept': r'application/json'}
         response = self.baseObj.getResponse(url, returnType='json', header=header)
         return response
@@ -1308,9 +1323,9 @@ class Workspaces(object):
         # http://host/fmerest/v2/repositories/junk_bcgwdlv/items/replicationScriptName.fmw/services?accept=json&detail=low
         # print 'baseurl', self.url
         url = self.baseObj.fixUrlPath(self.url)
-        url = urlparse.urljoin(url, wrkspcName)
+        url = urllib.parse.urljoin(url, wrkspcName)
         url = self.baseObj.fixUrlPath(url)
-        url = urlparse.urljoin(url, 'services')
+        url = urllib.parse.urljoin(url, 'services')
 
         # print 'url:', url
         datacont = 'services=fmejobsubmitter'
@@ -1360,7 +1375,7 @@ class Workspaces(object):
         :rtype: list of dictionaries
         '''
         url = self.baseObj.fixUrlPath(self.url)
-        url = urlparse.urljoin(url, wrkspcName)
+        url = urllib.parse.urljoin(url, wrkspcName)
         response = self.baseObj.getResponse(url)
         params = response[self.const.parameters]
         if reformat4JobReRun:
@@ -1386,7 +1401,7 @@ class Workspaces(object):
         # http://server/fmerest/v2/repositories/Samples/items/austinDownload.fmw?detail=low
         # print 'baseurl', self.url
         url = self.baseObj.fixUrlPath(self.url)
-        url = urlparse.urljoin(url, wrkspcName)
+        url = urllib.parse.urljoin(url, wrkspcName)
         self.logger.debug("url: %s", url)
         self.logger.debug("wrkspcName: %s", wrkspcName)
         # print 'wrkspc url:', url
@@ -1410,7 +1425,7 @@ class Workspaces(object):
         like the titles says deletes the workspace
         '''
         url = self.baseObj.fixUrlPath(self.url)
-        url = urlparse.urljoin(url, wrkspcName)
+        url = urllib.parse.urljoin(url, wrkspcName)
         self.logger.debug("url: %s", url)
         self.logger.debug("wrkspcName: %s", wrkspcName)
         header = {'Accept': 'application/json'}
@@ -1429,7 +1444,7 @@ class Resources(object):
         self.const = JSONConstants()
         # self.rootDir = 'connections'
         # self.fileSysDir = 'filesys'
-        self.url = urlparse.urljoin(self.baseObj.restUrl, self.baseObj.resourcesDir, True)
+        self.url = urllib.parse.urljoin(self.baseObj.restUrl, self.baseObj.resourcesDir, True)
 
     def getRootDirContents(self):
         '''
@@ -1437,7 +1452,7 @@ class Resources(object):
         '''
         # http://fmeserver/fmerest/v2/resources/connections?detail=low
         itemUrl = self.baseObj.fixUrlPath(self.url)
-        itemUrl = urlparse.urljoin(itemUrl, self.const.connections)
+        itemUrl = urllib.parse.urljoin(itemUrl, self.const.connections)
         response = self.baseObj.getResponse(itemUrl)
         return response[self.const.items]
 
@@ -1483,7 +1498,7 @@ class Resources(object):
                   'descrbing the directory hierarchy you are trying to get ' + \
                   'information about'
             msg = msg.format(dirList, type(dirList))
-            raise ValueError, msg
+            raise ValueError(msg)
         rootDirs = self.getRootDirContents()
         dirType = dirType.upper().strip()
         valid = False
@@ -1498,17 +1513,17 @@ class Resources(object):
             msg = 'you supplied a directory type of {0} which is ' + \
                   'an invalid type. Valid types include {1}'
             msg = msg.format(dirType, validTypes)
-            raise ValueError, msg
+            raise ValueError(msg)
 
         itemUrl = self.baseObj.fixUrlPath(self.url)
-        itemUrl = urlparse.urljoin(itemUrl, self.const.connections)
+        itemUrl = urllib.parse.urljoin(itemUrl, self.const.connections)
         itemUrl = self.baseObj.fixUrlPath(itemUrl)
-        itemUrl = urlparse.urljoin(itemUrl, dirType)
+        itemUrl = urllib.parse.urljoin(itemUrl, dirType)
         itemUrl = self.baseObj.fixUrlPath(itemUrl)
-        itemUrl = urlparse.urljoin(itemUrl, self.const.filesys)
+        itemUrl = urllib.parse.urljoin(itemUrl, self.const.filesys)
         for curDir in dirList:
             itemUrl = self.baseObj.fixUrlPath(itemUrl)
-            itemUrl = urlparse.urljoin(itemUrl, curDir)
+            itemUrl = urllib.parse.urljoin(itemUrl, curDir)
         self.logger.debug("itemUrl: %s", itemUrl)
         return itemUrl
 
@@ -1567,7 +1582,7 @@ class Resources(object):
         baseName = os.path.basename(file2Upload)
         # baseName = urllib.quote(baseName)
         baseName = baseName.decode('utf8')
-        print 'baseName', baseName
+        self.logger.debug('baseName: {0}'.format(baseName))
         headers = {'Content-Disposition': 'attachment; filename="' + str(baseName) + '"',
                    'Content-Type': 'application/octet-stream',
                    'Accept': 'application/json'}

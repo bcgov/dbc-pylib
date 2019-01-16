@@ -71,7 +71,7 @@ class DbMethods(object):
             self.connObj = cx_Oracle.connect(self.dbParams['username'],  # pylint: disable=no-member
                                              self.dbParams['password'],
                                              self.dbParams['instance'])
-        except cx_Oracle.DatabaseError, e:  # pylint: disable=no-member
+        except cx_Oracle.DatabaseError as e:
             msg = "problem encountered when trying to connect " + \
                   "to the database instance ({0}) using the " + \
                   'id ({1}), password {2}.  Database error is {3}'
@@ -112,7 +112,7 @@ class DbMethods(object):
             # dsn = cx_Oracle.makedsn(host, port, service_name=serviceName)
             dsn = cx_Oracle.makedsn(host, port, service_name=serviceName)  # pylint: disable=no-member
             self.logger.info("successfully connected to host/sn %s/%s", host, serviceName)
-        except Exception, e:  # pylint: disable=broad-except
+        except Exception as e:  # pylint: disable=broad-except
             msg = u'Got an error trying to create the dsn using the ' + \
                   u'service_name keyword.  Trying with no keywords'
             self.logger.debug(msg)
@@ -181,7 +181,7 @@ class DbMethods(object):
                   'list.  YOu provided the args: {0} which has a type: {1}'
             msg = msg.format(args, type(args))
             self.logger.error(msg)
-            raise ValueError, msg
+            raise ValueError(msg)
         # creating cursor...
         curObj = self.connObj.cursor()
         # curObj.callproc('DBMS_MVIEW.REFRESH', [schemaMview, 'c'])
@@ -228,7 +228,7 @@ class DbMethods(object):
         objName = objName.upper()
 
         if objType.upper() == 'TABLES' or objType.upper() == 'TABLE':
-            if schema <> None:
+            if schema != None:
                 sql = 'select * from all_tables where table_name = \'' + \
                       objName.upper() + '\' and ' + \
                       'owner = \'' + schema.upper() + '\''
@@ -272,8 +272,8 @@ class DbMethods(object):
             curObj = connObj.cursor()
             curObj.execute(sql)
         else:
-            raise 'FunctionalityNotDefinedError', 'Functionality for the object type ' + objType + \
-                  ' is not yet defined!'
+            raise 'FunctionalityNotDefinedError'( 'Functionality for the object type ' + objType + \
+                  ' is not yet defined!')
         row = curObj.fetchone()
         retval = bool(row)
         curObj.close()
@@ -317,6 +317,8 @@ class DbMethods(object):
                           the parameter dataList exist.
         :type dbValues: string
         '''
+        def xrange(x):
+            return iter(range(x))
 
         in_clause = ', '.join([':id%d' % x for x in xrange(len(dataList))])
         # dbFormattedList = self.quoteStrings(dataList)

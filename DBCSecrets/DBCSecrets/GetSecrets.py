@@ -538,6 +538,9 @@ class SecretAccountDetails(object):
 
     def __iter__(self):
         return self
+    
+    def __next__(self):
+        return self.next()
 
     def next(self):
         '''
@@ -856,7 +859,7 @@ class EnvironmentManager(object):
                       'in the secrets file {1}'
                 raise ValueError(msg.format(
                     self.const.secrets_env_var, secretsFileFullPath))
-        self.logger.debug("secretString: %s", secretString)
+        #self.logger.debug("secretString: %s", secretString)
         struct = json.loads(secretString)
         self.secretsStruct = struct
 
