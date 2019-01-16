@@ -119,8 +119,8 @@ class Backup(object):
         self.struct2JsonFile(transStruct, transFile)
 
 
-if __name__ == '__main__':
-    env = 'dev'
-    backupDirForTesting = os.path.join(os.path.dirname(__file__), '..', 'data', 'kirk_backup_testing')
-    backup = Backup(backupDirForTesting, env)
-    backup.backupAll()
+# if __name__ == '__main__':
+#     env = 'dev'
+#     backupDirForTesting = os.path.join(os.path.dirname(__file__), '..', 'data', 'kirk_backup_testing')
+#     backup = Backup(backupDirForTesting, env)
+#     backup.backupAll()

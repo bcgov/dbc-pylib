@@ -1,8 +1,8 @@
 from enum import Enum
 
-KIRKENV =  {'DEV': 'kirk_dev', 
-            'TST': 'kirk_tst',
-            'PRD': 'kirk_prd'}
+KIRKENV = {'DEV': 'kirk_dev',
+           'TST': 'kirk_tst',
+           'PRD': 'kirk_prd'}
 
 class KirkApiPaths():
     '''
@@ -27,6 +27,14 @@ class JobProperties(Enum):
     cronStr = 9
     destTableName = 10
     destSchema = 11
+
+
+class DestinationsProperties(Enum):
+    dest_key = 1
+    dest_host = 2
+    dest_type = 3
+    dest_service_name = 4
+    dest_port = 5
 
 
 class SourceProperties(Enum):
@@ -108,12 +116,14 @@ class KirkJobProperties():
     kirkScheduleSuffix = '.KIRK'
     kirkFMWPrefix = 'APP_KIRK__'
 
+
 class KirkFMWs(Enum):
     '''
     Different FMW types that are used by Kirk, these names do not
     include the .fmw suffix.  Used to define job types
     '''
     APP_KIRK__FGDB = 1
+
 
 class SourceTypes():
     '''

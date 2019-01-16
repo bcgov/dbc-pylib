@@ -30,7 +30,6 @@ import logging
 import os
 
 import cx_Oracle
-import Misc.AppConfigs
 
 
 class DbMethods(object):
@@ -44,7 +43,7 @@ class DbMethods(object):
     :ivar dbParams: Contains the database connection parameters.
     '''
 
-    def __init__(self, configFile=''):
+    def __init__(self):
         self.logger = logging.getLogger(__name__)
         self.logger.debug("Logging set up in the module: %s" , os.path.basename(__file__))
         self.logger.debug("using this version of dblib")
@@ -53,8 +52,6 @@ class DbMethods(object):
         # parameters by the method __getDbParams
         self.dbParams = {}
 
-        if configFile:
-            self.connect(configFile)
 
     def connectParams(self, user=None, pswd=None, instance=None):
         '''
@@ -74,7 +71,7 @@ class DbMethods(object):
             self.connObj = cx_Oracle.connect(self.dbParams['username'],  # pylint: disable=no-member
                                              self.dbParams['password'],
                                              self.dbParams['instance'])
-        except cx_Oracle.DatabaseError, e:  # pylint: disable=no-member
+        except cx_Oracle.DatabaseError as e:
             msg = "problem encountered when trying to connect " + \
                   "to the database instance ({0}) using the " + \
                   'id ({1}), password {2}.  Database error is {3}'
@@ -88,20 +85,20 @@ class DbMethods(object):
             self.logger.info(msg)
             raise ConnectionError(self.dbParams['username'], self.dbParams['instance'])
 
-    def connectNoDSN(self, user, pswd, instance, server, port=1521):
+    def connectNoDSN(self, user, pswd, serviceName, host, port=1521):
         '''
         Allows for the creation of a database connection when the
         client does not have a valid TNS file.  Allows you to connect
-        using port and server name.
+        using port and host name.
 
         :param  user: schema that you are using to connnect to the database
         :type user: str
         :param  pswd: password that goes with the schema
         :type pswd: str
-        :param  instance: The database instance (service_name) that is being connected to.
-        :type instance: str
-        :param  server: The server that the instance resides on
-        :type server: str
+        :param  serviceName: The database serviceName (service_name) that is being connected to.
+        :type serviceName: str
+        :param  host: The host that the serviceName resides on
+        :type host: str
         :param  port: the port that the database listener is attached to.
         :type port: int
         '''
@@ -112,55 +109,19 @@ class DbMethods(object):
             cxOraPath = os.path.abspath(cx_Oracle.__file__)
             self.logger.debug("cx_oracle path is: %s", cxOraPath)
 
-            # dsn = cx_Oracle.makedsn(server, port, service_name=instance)
-            dsn = cx_Oracle.makedsn(server, port, service_name=instance)  # pylint: disable=no-member
-            self.logger.info("successfully connected to host/sn %s/%s", server, instance)
-        except Exception, e:  # pylint: disable=broad-except
+            # dsn = cx_Oracle.makedsn(host, port, service_name=serviceName)
+            dsn = cx_Oracle.makedsn(host, port, service_name=serviceName)  # pylint: disable=no-member
+            self.logger.info("successfully connected to host/sn %s/%s", host, serviceName)
+        except Exception as e:  # pylint: disable=broad-except
             msg = u'Got an error trying to create the dsn using the ' + \
                   u'service_name keyword.  Trying with no keywords'
             self.logger.debug(msg)
             self.logger.debug(repr(e))
-            msg = u'input params are, server: {0}, port: {1}, inst {2}'
-            msg = msg.format(server, port, instance)
-            dsn = cx_Oracle.makedsn(server, port, instance).replace(u'SID', u'SERVICE_NAME')  # pylint: disable=no-member
+            msg = u'input params are, host: {0}, port: {1}, inst {2}'
+            msg = msg.format(host, port, serviceName)
+            dsn = cx_Oracle.makedsn(host, port, serviceName).replace(u'SID', u'SERVICE_NAME')  # pylint: disable=no-member
             self.logger.debug(u'dsn returned is: %s', dsn)
         self.connectParams(user, pswd, dsn)
-
-    def connect(self, configFile):
-        '''
-        :param configFile: a config file containing the connection parameters.
-        :type configFile: string (filepath)
-
-        This is kind of a legacy method.  Originally when this module was
-        created the idea is that connection parameters would be stored in a file.
-        Have now abandoned that idea, and now connection info is generally handled
-        by the secrets api.  Secrets retrieves the parameters.  This module then
-        receives them and uses them.
-
-        This function will extract the parameters from the db config file and
-        create a connection using the parameters found in that file.
-        '''
-        self.confObj = Misc.AppConfigs.Config(configFile)
-        self.__getDbParams()
-        self.connectParams()
-
-    def __getDbParams(self):
-        '''
-        Retrieves the database parameters from the database config file.
-        '''
-        # get directory that this module is in, backup one, then go
-        # into config
-
-        dbParamFileWithPath = self.confObj.getFullPathToDbParamsFile()
-        print 'dbParamFileWithPath', dbParamFileWithPath
-        fh = open(dbParamFileWithPath, 'r')
-        self.dbParams['username'] = fh.readline().replace("\n", "")
-        self.dbParams['password'] = fh.readline().replace("\n", "")
-        self.dbParams['instance'] = fh.readline().replace("\n", "")
-        msg = "using the db accoung: " + str(self.dbParams['username']) + \
-              " and the instance: " + str(self.dbParams['instance'])
-        self.logger.debug(msg)
-        fh.close()
 
     def commit(self):
         '''
@@ -220,7 +181,7 @@ class DbMethods(object):
                   'list.  YOu provided the args: {0} which has a type: {1}'
             msg = msg.format(args, type(args))
             self.logger.error(msg)
-            raise ValueError, msg
+            raise ValueError(msg)
         # creating cursor...
         curObj = self.connObj.cursor()
         # curObj.callproc('DBMS_MVIEW.REFRESH', [schemaMview, 'c'])
@@ -267,7 +228,7 @@ class DbMethods(object):
         objName = objName.upper()
 
         if objType.upper() == 'TABLES' or objType.upper() == 'TABLE':
-            if schema <> None:
+            if schema != None:
                 sql = 'select * from all_tables where table_name = \'' + \
                       objName.upper() + '\' and ' + \
                       'owner = \'' + schema.upper() + '\''
@@ -311,8 +272,8 @@ class DbMethods(object):
             curObj = connObj.cursor()
             curObj.execute(sql)
         else:
-            raise 'FunctionalityNotDefinedError', 'Functionality for the object type ' + objType + \
-                  ' is not yet defined!'
+            raise 'FunctionalityNotDefinedError'( 'Functionality for the object type ' + objType + \
+                  ' is not yet defined!')
         row = curObj.fetchone()
         retval = bool(row)
         curObj.close()
@@ -356,6 +317,8 @@ class DbMethods(object):
                           the parameter dataList exist.
         :type dbValues: string
         '''
+        def xrange(x):
+            return iter(range(x))
 
         in_clause = ', '.join([':id%d' % x for x in xrange(len(dataList))])
         # dbFormattedList = self.quoteStrings(dataList)

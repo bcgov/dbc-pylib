@@ -794,6 +794,7 @@ class FMEFeatureClass(object):
         is that everything is ok.  If not then will get the name from the
         published parameter DEST_FEATURE_1
         '''
+        retVal = None
         nodeName = self.featClsStruct[self.fcNameField]
         featureType = self.featClsStruct[self.featureTypeName]
         nodeNameList = nodeName.split('.')
@@ -823,7 +824,6 @@ class FMEFeatureClass(object):
                           'parameter $({3}) = {2}'
                     msg = msg.format(nodeName, featureType, ppfc, pubParamName)
                     self.logger.warning(msg)
-
         return retVal
 
     def getFeatureClassPropertiesAsNameChild(self):
