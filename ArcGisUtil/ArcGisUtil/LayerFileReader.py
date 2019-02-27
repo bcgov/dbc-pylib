@@ -75,9 +75,13 @@ class ReadLayerFiles(object):
         :type srcLyrFile: str
         '''
         self.logger.info(u'inlayer file is: %s', srcLyrFile)
-        lyrObj = arcpy.mapping.Layer(srcLyrFile)
-        if lyrObj.supports('description'):
-            self.logger.debug(u'DESCRIPTION: %s', lyrObj.description)
+        lyrObj = arcpy.mp.LayerFile(srcLyrFile)
+        
+        
+        
+        
+        #if lyrObj.supports('description'):
+        #    self.logger.debug(u'DESCRIPTION: %s', lyrObj.description)
         lyrInfo = []
         if lyrObj.isGroupLayer:
             propertyList = ['workspacePath', 'description', 'serviceProperties', \
@@ -86,7 +90,7 @@ class ReadLayerFiles(object):
                 if lyrObj.supports(prop):
                     val = eval('lyrObj.' + prop)
                     self.logger.debug(u'GROUPLAYER: {0}:{1}'.format(prop, val))
-            lyrList = arcpy.mapping.ListLayers(lyrObj)
+            lyrList = arcpy.mp.ListLayers(lyrObj)
 
             for lyr in lyrList:
                 retData = self.reportLyer(lyr)

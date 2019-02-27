@@ -13,3 +13,5 @@ from fixtures.FMEServerApiData_fixtures import *
 from fixtures.pyKirkData_fixtures import *
 from fixtures.FMEServer_fixture import *
 from fixtures.PMP_Info import *
+from fixtures.layerfile_fixture import *
+from fixtures.arcproregistryreader_fixture import *
