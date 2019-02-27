@@ -10,3 +10,8 @@ import pytest
 def getRegistryReader():
     reader = ArcGisUtil.ConfigurePy3Paths.Py3PathRegistry()
     yield reader
+    
+@pytest.fixture()
+def getArcPyEnvs(getRegistryReader):
+    getRegistryReader.addToPATHEnvVar()
+    getRegistryReader.addToPythonPath()

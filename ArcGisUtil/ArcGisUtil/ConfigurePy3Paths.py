@@ -15,6 +15,11 @@ import sys
 
 
 class RegistryReader(object):
+    '''
+    Simplifies access to registry keys and items, keys are the hierarchical
+    names that values are organized under.  Items are the actual values that
+    are associated with the various keys
+    '''
 
     def __init__(self):
         self.logger = logging.getLogger(__name__)
@@ -23,7 +28,8 @@ class RegistryReader(object):
         self.logger.debug("keys: %s", keys)
         keyStr = '\\'.join(str(e) for e in keys)
         self.logger.debug('keyStr: %s', keyStr)
-        explorer = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, keyStr, 0, winreg.KEY_READ)
+        explorer = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, keyStr, 0,
+                                  winreg.KEY_READ)
         subKeys = []
         try:
             i = 0
@@ -38,7 +44,8 @@ class RegistryReader(object):
     def getKeyItems(self, keys):
         keyStr = '\\'.join(str(e) for e in keys)
         self.logger.debug('keyStr: %s', keyStr)
-        explorer = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, keyStr, 0, winreg.KEY_READ)
+        explorer = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, keyStr, 0,
+                                  winreg.KEY_READ)
         values = []
         try:
             cnt = 0
@@ -52,6 +59,10 @@ class RegistryReader(object):
 
 
 class Py3PathRegistry(RegistryReader):
+    '''
+    Methods to extract the python 3 install location from the arcgis pro
+    installation.
+    '''
 
     def __init__(self):
         self.logger = logging.getLogger(__name__)
@@ -102,8 +113,8 @@ class Py3PathRegistry(RegistryReader):
         '''
         :param inputItems: items extracted from registry keys, has a format
                            like [('InstallDir', 'E:\\sw_nt\\ArcGIS\\Pro\\', 1),
-                           ('ProFlexNetService', '11.14.1.3', 1), ('BuildNumber',
-                            '10257', 1), ... ]
+                           ('ProFlexNetService', '11.14.1.3', 1),
+                           ('BuildNumber', '10257', 1), ... ]
         :param extractItems: a list of the item names that you want to
                              extract and return as a dictionary
         '''
@@ -185,8 +196,10 @@ class Py3PathRegistry(RegistryReader):
         for i in proPaths:
             if i not in pthList:
                 pthList.append(i)
-        os.environ['PATH']= ';'.join(pthList)
-        
+        os.environ['PATH'] = ';'.join(pthList)
+
+
 class ArcProRegistryPathNotFound(Exception):
-   """Base class for other exceptions"""
-   pass
+    """creating a new exception type for when the expected path to arcgis
+    pro cannot be found in the registry"""
+    pass
