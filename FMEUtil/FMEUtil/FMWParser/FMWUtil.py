@@ -20,13 +20,13 @@ class Util():
         Takes a variable name like $(DEST_FEATURE_1) and strips off the
         '$(' from the start and ')' from the end
         '''
-        regex = re.compile(FMWParserConstants.PUBPARAM_STIPNOTATION, re.IGNORECASE)
+        regex = re.compile(FMWParserConstants.PUBPARAM_STIPNOTATION, re.IGNORECASE)  # @UndefinedVariable
         srch = regex.search(varName)
         if not srch:
             msg = 'unable to extract a variable from the text %s, expecting ' + \
                   'test in the format of \'$(SOMEVAR)\'. '
             self.logger.error(msg, varName)
-            raise ValueError, msg, varName
+            raise ValueError( msg, varName)
         pubParmName = srch.group(1)
         return pubParmName
 
