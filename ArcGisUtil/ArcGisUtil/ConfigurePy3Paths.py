@@ -106,6 +106,9 @@ class Py3PathRegistry(RegistryReader):
 
         # get the arcpro tags
         keys.append(srchKey)
+        regloc = '->'.join(keys)
+        self.logger.info("getting install info from the registry location:" + \
+                         f" {regloc}")
         items = self.getKeyItems(keys)
         return items
 
@@ -122,7 +125,7 @@ class Py3PathRegistry(RegistryReader):
         for item in inputItems:
             if item[0] in extractItems:
                 itemDict[item[0]] = item[1]
-        print(f'itemDict: {itemDict}')
+        self.logger.debug(f'itemDict: {itemDict}')
         return itemDict
         # root pro install is in InstallDir
 
@@ -132,7 +135,7 @@ class Py3PathRegistry(RegistryReader):
         '''
         items = self.getArcProItems()
         # looking to get the keys: PythonCondaEnv and PythonCondaRoot
-        print(f'items: {items}')
+        self.logger.debug(f'items: {items}')
         searchItems = ['InstallDir']
         itemDict = self.extractFromItems(items, searchItems)
         # root pro install is in InstallDir
@@ -145,7 +148,7 @@ class Py3PathRegistry(RegistryReader):
         '''
         items = self.getArcProItems()
         # looking to get the keys: PythonCondaEnv and PythonCondaRoot
-        print(f'items: {items}')
+        self.logger.debug(f'items: {items}')
         searchItems = ['PythonCondaEnv', 'PythonCondaRoot', 'InstallDir']
         itemDict = self.extractFromItems(items, searchItems)
 
@@ -185,17 +188,22 @@ class Py3PathRegistry(RegistryReader):
         uses that information to create the paths necessary to successfully
         import arcpy and adds them to PATH env var
         '''
+        self.logger.info("updating the PYTHONPATH to find python3 / arcpy")
+
         proPaths = self.getPaths2Add()
         for i in proPaths:
             if i not in sys.path:
                 sys.path.append(i)
+                self.logger.info(f"adding path: {i}")
 
     def addToPATHEnvVar(self):
+        self.logger.info("updating the PATH env var to find python3 / arcpy")
         proPaths = self.getPaths2Add()
         pthList = os.environ['PATH'].split(';')
         for i in proPaths:
             if i not in pthList:
                 pthList.append(i)
+                self.logger.info(f"adding path: {i}")
         os.environ['PATH'] = ';'.join(pthList)
 
 

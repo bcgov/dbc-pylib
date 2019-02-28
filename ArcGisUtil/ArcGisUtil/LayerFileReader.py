@@ -93,6 +93,7 @@ class ReadLayerFiles(object):
                         self.logger.debug(u'GROUPLAYER: {0}:{1}'.format(prop,
                                                                         val))
             else:
+                self.logger.info(f"adding layer : {lyr.name}")
                 retData = self.reportLyer(lyr)
                 retData['LayerFullFilePath'] = srcLyrFile
                 lyrInfo.append(retData)
@@ -110,9 +111,9 @@ class ReadLayerFiles(object):
             retData[prop] = ''
             if inLayer.supports(prop.upper()):
                 val = eval('inLayer.' + prop)
-                self.logger.info(u"    {0}:{1}".format(prop, val))
+                self.logger.debug(u"    {0}:{1}".format(prop, val))
                 retData[prop] = val
             else:
-                self.logger.info(u"    {0}:{1}".format(prop, u'None'))
+                self.logger.debug(u"    {0}:{1}".format(prop, u'None'))
                 retData[prop] = None
         return retData
