@@ -559,7 +559,7 @@ class Schedule(object):
         '''
         # makeing the keys all lower case.
         paramsLowerCase = {}
-        for k, v in newParams.iteritems():
+        for k, v in newParams.items():
             paramsLowerCase[k.lower()] = v
 
         sched2Use = self.__verifyScheduleCategory(scheduleName, category)
