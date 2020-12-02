@@ -9,8 +9,12 @@ used to populate GWIP tables used by the custom layer tool.
 '''
 import logging
 import os
-import arcpy  # @UnresolvedImport
+import platform
+import archook
 
+# setup for arcpro paths
+archook.get_arcpy(pro=True)
+import arcpy
 
 class ReadLayerFiles(object):
     '''
