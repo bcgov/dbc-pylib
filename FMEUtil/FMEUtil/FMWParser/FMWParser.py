@@ -178,7 +178,6 @@ class FMWParser(object):
             srchSchemaOnly = schemaOnlyRegex.search(curValue)
             srchFeatClsOnly = featClsOnlyRegex.search(curValue)
 
-            self.logger.debug('curEntry: {0}'.format(curEntry))
             self.logger.debug('curValue: {0}'.format(curValue))
 
             # logic applied to the various searches
@@ -226,7 +225,7 @@ class FMWParser(object):
         # Now sub in the pub param from the pubparam list
         # don't sub in if the pub param is scripted
         self.logger.debug("pub param name: {0}".format(pubParmName))
-
+        self.logger.debug("params: {0}".format(params))
         if pubParmName in params and params[pubParmName]['TYPE'] <> 'Python Script:':
             paramValue = params[pubParmName]['DEFAULT_VALUE']
         elif pubParmName not in params:
@@ -445,20 +444,33 @@ class FMWParser(object):
             # 3 - variable name
             #
             pubParamNameLst = re.split(r'\s+', pubParam.attrib['GUI_LINE'])
+            self.logger.debug('pubParamNameLst: %s', pubParamNameLst)
             # starting to remove some elements trying to
             # get to the point where the first element in the
             # list is the pub param name
-            # elems to delete:
+            # elems to delete:      
             elems2Delete = ['GUI', 'OPTIONAL', 'IGNORE', 'TEXT', 'STRING_OR_CHOICE', \
                              'TEXT_OR_ATTR', 'TEXT_EDIT_PYTHON_PARM', \
                              'SOURCE_GEODATABASE', 'MULTIFILE', 'DIRNAME', \
                              'STRING_OR_ATTR', 'FILENAME_MUSTEXIST', 'CHOICE', \
                              'DIRNAME_SRC', 'STRING', 'STRING_OR_CHOICE_OR_ATTR', \
                              'FILENAME']
-            for elem2Delete in elems2Delete:
-                if pubParamNameLst[0].upper() == elem2Delete:
+            cnter = 0
+            while cnter < len(elems2Delete):
+                elem2Delete = elems2Delete[cnter]
+                if pubParamNameLst[0].upper().strip() == elem2Delete:
+                    #self.logger.debug("removing: %s", pubParamNameLst[0])
                     del pubParamNameLst[0]
-                self.logger.debug("shortened list: %s", pubParamNameLst)
+                    cnter = 0
+                else:
+                    cnter += 1
+            self.logger.debug('pubParamNameLst after trim: %s', pubParamNameLst)
+            #for elem2Delete in elems2Delete:
+            #    self.logger.debug("looking for: %s", elem2Delete)
+            #    if pubParamNameLst[0].upper().strip() == elem2Delete:
+            #        self.logger.debug("removing: %s", pubParamNameLst[0])
+            #        del pubParamNameLst[0]
+            #    self.logger.debug("shortened list: %s", pubParamNameLst)
             # trying to detect problems with how the parsing took place.
             if len(pubParamNameLst) >= 2:
                 if pubParamNameLst[0].isupper() and pubParamNameLst[1].isupper():
@@ -498,7 +510,7 @@ class FMWParser(object):
         extracting information.
         '''
         self.parseXML()
-        pubParams = self.getPublishedParams()
+        pubParams = self.getPublishedParams()        
         transformers = self.getTransformers()
         featureClassStruct = self.getFeatureTypes()
         #      transformerStruct, featureClassStruct, publishedParams):

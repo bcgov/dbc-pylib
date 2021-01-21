@@ -288,7 +288,7 @@ class FieldMaps(object):
             self.fldMaps = respJson
         return respJson
 
-    def postFieldMaps(self, jobid, sourceColumnName, destColumnName):
+    def postFieldMaps(self, jobid, sourceColumnName, destColumnName, fmeColumnType=None):
         '''
         Adds a new field map based on provided parameters
         :param jobid: the job id that the fieldmap should be associated with
@@ -299,11 +299,12 @@ class FieldMaps(object):
         :type destColumnName: str
         '''
 
-        fldmapProps = constants.FieldmapProperties
+        p = constants.FieldmapProperties
 
-        struct = {fldmapProps.jobid.name: jobid,
-                  fldmapProps.sourceColumnName.name: sourceColumnName,
-                  fldmapProps.destColumnName.name: destColumnName}
+        struct = {p.jobid.name: jobid,
+                  p.sourceColumnName.name: sourceColumnName,
+                  p.destColumnName.name: destColumnName,
+                  p.fmeColumnType.name: fmeColumnType}
 
         resp = requests.post(self.fldmapUrl,
                              data=struct,
@@ -435,6 +436,37 @@ class Transformers(object):
             # print 'response:', respJson
             self.fldMaps = respJson
         return respJson
+
+    def postTransformer2(self, jobid, transformer_type, ts1_name, ts1_value,
+                         ts2_name, ts2_value, ts3_name, ts3_value,
+                         ts4_name, ts4_value, ts5_name, ts5_value,
+                         ts6_name, ts6_value):
+        p = constants.TransformerProperties
+        struct = {p.jobid.name: jobid,
+                  p.transformer_type.name: transformer_type,
+                  p.ts1_name.name: ts1_name,
+                  p.ts1_value.name: ts1_value,
+                  p.ts2_name.name: ts2_name,
+                  p.ts2_value.name: ts2_value,
+                  p.ts3_name.name: ts3_name,
+                  p.ts3_value.name: ts3_value,
+                  p.ts4_name.name: ts4_name,
+                  p.ts4_value.name: ts4_value,
+                  p.ts5_name.name: ts5_name,
+                  p.ts5_value.name: ts5_value,
+                  p.ts6_name.name: ts6_name,
+                  p.ts6_value.name: ts6_value}
+        resp = requests.post(self.transformerUrl,
+                             data=struct,
+                             headers=self.baseObj.authHeader)
+        self.logger.debug("response from transformer post: %s", resp.json())
+        if resp.status_code < 200 or resp.status_code >= 300:
+            msg = constants.POST_NON_200_ERROR_MSG.format(self.transformerUrl,
+                                                          resp.status_code,
+                                                          resp.text)
+            raise APIError(msg)
+        self.getTransformers(force=True)
+        return resp.json()
 
     def postTransformer(self, jobid, transformerType, parameters):
         '''
@@ -643,7 +675,30 @@ class Sources(object):
                 jobSrcs.append(src)
         return jobSrcs
 
-    def postFileSources(self, jobid, sourceTable, sourceDataSet, srcProjection,
+    def postSource(self, jobid, sourceType, sourceProjection, sourceFilePath,
+                   sourceDBSchema, sourceTable, sourceDBName, sourceDBHost,
+                   sourceDBPort):
+        p = constants.SourceProperties
+        struct = {p.jobid.name: jobid,
+                  p.sourceType.name: sourceType,
+                  p.sourceProjection.name: sourceProjection,
+                  p.sourceFilePath.name: sourceFilePath,
+                  p.sourceDBSchema.name: sourceDBSchema,
+                  p.sourceTable.name: sourceTable,
+                  p.sourceDBName.name: sourceDBName,
+                  p.sourceDBHost.name: sourceDBHost,
+                  p.sourceDBPort.name: sourceDBPort}
+        resp = requests.post(self.sourcesUrl, data=struct,
+                             headers=self.baseObj.authHeader)
+        self.logger.debug("source post status code: %s", resp.status_code)
+        if resp.status_code < 200 or resp.status_code >= 300:
+            msg = constants.POST_NON_200_ERROR_MSG.format(
+                self.sourcesUrl, resp.status_code, resp.text)
+            raise APIError(msg)
+        return resp.json()
+
+    def postFileSources(self, jobid, sourceTable, sourceFilePath,
+                        sourceProjection,
                         sourceType=constants.SourceTypes.file_geo_database):
         '''
         Writes file based sources, file based take a different set of args
@@ -661,9 +716,9 @@ class Sources(object):
         sourceProps = constants.SourceProperties
         struct = {sourceProps.jobid.name: jobid,
                   sourceProps.sourceTable.name: sourceTable,
-                  sourceProps.sourceFilePath.name: sourceDataSet,
+                  sourceProps.sourceFilePath.name: sourceFilePath,
                   sourceProps.sourceType.name: sourceType,
-                  sourceProps.sourceProjection.name: srcProjection}
+                  sourceProps.sourceProjection.name: sourceProjection}
         resp = requests.post(self.sourcesUrl, data=struct,
                              headers=self.baseObj.authHeader)
         self.logger.debug("source post status code: %s", resp.status_code)
@@ -834,7 +889,8 @@ class Jobs(object):
                           respJson)
         return respJson
 
-    def postJobs(self, status, cronStr, destEnv, jobLabel, schema, fcName):
+    def postJobs(self, jobStatus, cronStr, destField, jobLabel, destSchema,
+                 destTableName):
         '''
         Adds a Job to the api
            - jobStatus (PENDING, HOLD for test data or jobs that should not
@@ -861,12 +917,12 @@ class Jobs(object):
         :type fcName: str
         '''
         jobProps = constants.JobProperties
-        struct = {jobProps.destField.name: destEnv,
+        struct = {jobProps.destField.name: destField,
                   jobProps.cronStr.name: cronStr,
-                  jobProps.jobStatus.name: status,
+                  jobProps.jobStatus.name: jobStatus,
                   jobProps.jobLabel.name:  jobLabel,
-                  jobProps.destTableName.name: fcName,
-                  jobProps.destSchema.name: schema}
+                  jobProps.destTableName.name: destTableName,
+                  jobProps.destSchema.name: destSchema}
         resp = requests.post(self.jobsUrl, data=struct,
                              headers=self.baseObj.authHeader)
         if resp.status_code < 200 or resp.status_code >= 300:
@@ -877,14 +933,44 @@ class Jobs(object):
         self.getJobs(force=True)
         return resp.json()
 
-    def addJobs(self, status, cronStr, destEnv, jobLabel, destSchema,
-                destFeatureClass):
+    def putJob(self, jobid, **params):
+        currentJobParams = self.getJob(jobid)
+        jobsUrl = urlparse.urljoin(self.jobsUrl, str(jobid), True)
+        jobsUrl = self.baseObj.fixUrlPath(jobsUrl)
+        self.logger.debug("put url: %s", jobsUrl)
+        newJobParams = {}
+        for jobProp in constants.JobProperties:
+            if jobProp.name in params:
+                newJobParams[jobProp.name] = params[jobProp.name]
+                self.logger.info("updating the parameter %s to %s",
+                                 jobProp.name,
+                                 jobProp.name)
+            else:
+                newJobParams[jobProp.name] = currentJobParams[jobProp.name]
+        
+                
+                
+        jobProps = constants.JobProperties
+        
+        resp = requests.put(jobsUrl, data=newJobParams,
+                             headers=self.baseObj.authHeader)
+        if resp.status_code < 200 or resp.status_code >= 300:
+            msg = constants.DELETE_NON_200_ERROR_MSG.format(
+                self.jobsUrl, resp.status_code, resp.text)
+            raise APIError(msg)
+
+        self.logger.debug('response status code: %s', resp.status_code)
+        #self.getJobs(force=True)
+        return resp
+
+    def addJobs(self, jobStatus, cronStr, destField, jobLabel, destSchema,
+                destTableName):
         '''
         This is a synonym to the postjob method.  Both do the same thing,
         see postjob for parameter description
         '''
-        retVal = self.postJobs(status, cronStr, destEnv, jobLabel,
-                               destSchema, destFeatureClass)
+        retVal = self.postJobs(jobStatus, cronStr, destField, jobLabel,
+                               destSchema, destTableName)
         return retVal
 
     def deleteJob(self, jobid):

@@ -71,7 +71,7 @@ class FMERestBase(object):
         This is used when constructing urls to make sure the path can have
         another directory added to it using the urljoin method.
         '''
-        if url[len(url) - 1] <> '/':
+        if url[len(url) - 1] != '/':
             url = url + '/'
         return url
 
@@ -433,7 +433,22 @@ class Schedule(object):
                                              detail='low')
         # print 'response', response
         self.logger.debug("response is: %s", response)
+    
+    def updateSchedule(self, category, scheduleName, scheduleDescription):
+        self.logger.debug("root schedule url: {0}".format(self.schedules.url))
+        url = self.schedules.baseObj.fixUrlPath(self.schedules.url)
 
+        # url = urlparse.urljoin(url, catEncode)
+        url = urlparse.urljoin(url, category)
+        url = self.schedules.baseObj.fixUrlPath(url)
+        # url = urlparse.urljoin(url, scheduleNameEncode)
+        url = urlparse.urljoin(url, scheduleName)
+        url = self.schedules.baseObj.fixUrlPath(url)
+        # print 'schedule url now:', url
+        self.logger.debug("schedule url: {0}".format(url))
+        header = {'Accept': 'application/json'}
+        self.baseObj.putResponse(url, header=header, data=scheduleDescription)
+    
     def delete(self, category, scheduleName):
         '''
         :param category: The name of the category that the job exists within
@@ -457,7 +472,7 @@ class Schedule(object):
         # print 'schedule url now:', url
         self.logger.debug("schedule url: {0}".format(url))
         header = {'Accept': 'application/json'}
-        response = self.baseObj.deleteResponse(url, header=header, acceptCodes=[204])
+        response = self.baseObj.putResponse(url, header=header, acceptCodes=[204])
         # print 'response', response
         return response
 

@@ -11,6 +11,18 @@ import DBCSecrets.GetSecrets
 import os
 import logging
 
+@pytest.fixture()
+def FMEServer_ConnectParams_dev():
+    secretsFile = os.path.join(os.path.dirname(__file__), '..', 'secrets',
+                               'secrets.json')
+    secretsFile = os.path.realpath(secretsFile)
+    print 'secretsFile', secretsFile
+    creds = DBCSecrets.GetSecrets.CredentialRetriever(secretsFile)
+    secrets = creds.getSecretsByLabel('fmetst')
+    host = secrets.getHost()
+    token = secrets.getAPI()
+    baseUrl = 'http://{0}/'.format(host)
+    return {'url':baseUrl, 'token':token}
 
 @pytest.fixture()
 def KirkConnectInfo_local():
@@ -25,7 +37,6 @@ def KirkConnectInfo_local():
     obj = type('obj', (object,), {'url': url, 'token': token})
     yield obj
 
-
 @pytest.fixture()
 def KirkConnectInfo_openShift_dev():
     secretsFile = os.path.join(os.path.dirname(__file__), '..', 'secrets',
@@ -39,8 +50,8 @@ def KirkConnectInfo_openShift_dev():
     obj = type('obj', (object, ), {'url': url, 'token': token})
     yield obj
 
-
 @pytest.fixture()
 def KirkConnectInfo(KirkConnectInfo_openShift_dev):
     # KirkConnectInfo_local
     yield KirkConnectInfo_openShift_dev
+    
