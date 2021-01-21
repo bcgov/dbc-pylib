@@ -202,7 +202,6 @@ class PMP(object):
 
         '''
         self.logger.debug("resourceName is: %s", resourceName)
-        # print 'resourceName is:', resourceName
         resId = self.getResourceId(resourceName)
         accnts = self.getAccountsForResourceID(resId)
         self.logger.debug("retrieved %s accounts for the resource %s",
@@ -240,7 +239,6 @@ class PMP(object):
         dets = self.const.resourcekeys_Details
         accntList = self.const.resourceKeys_accountList
         justAccnts = accnts[opKey][dets][accntList]
-        # print 'justAccnts', justAccnts
         return justAccnts
 
     def getAccountId(self, accntName, resourceId):
