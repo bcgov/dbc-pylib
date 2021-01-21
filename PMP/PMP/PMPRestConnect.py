@@ -201,7 +201,6 @@ class PMP(object):
 
         '''
         self.logger.debug("resourceName is: %s", resourceName)
-        # print 'resourceName is:', resourceName
         resId = self.getResourceId(resourceName)
         accnts = self.getAccountsForResourceID(resId)
         self.logger.debug("retrieved %s accounts for the resource %s",
