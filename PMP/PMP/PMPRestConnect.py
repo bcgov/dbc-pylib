@@ -85,7 +85,7 @@ class PMP(object):
         self.logger.debug("PMP resource url:" + url)
         tokenDict = self.getTokenDict()
 
-        r = requests.get(url, params=tokenDict, verify=False)
+        r = requests.get(url, params=tokenDict, verify=None)
         if r.status_code >= 400 and r.status_code < 600:
             # stop
             msg = "unsuccessful connection status code: %s", r.status_code
@@ -232,7 +232,7 @@ class PMP(object):
               'resources' + '/' + str(resId) + '/accounts'
         tokenDict = self.getTokenDict()
         self.logger.debug("using the url: %s", url)
-        r = requests.get(url, params=tokenDict, verify=False)
+        r = requests.get(url, params=tokenDict, verify=None)
         accnts = r.json()
 
         opKey = self.const.resourcekeys_operation
@@ -327,7 +327,7 @@ class PMP(object):
 
         tokenDict = self.getTokenDict()
         self.logger.debug("url used to get password %s", url)
-        r = requests.get(url, params=tokenDict, verify=False)
+        r = requests.get(url, params=tokenDict, verify=None)
         retVal = r.text
         return retVal
 
@@ -343,8 +343,8 @@ class PMP(object):
               str(accntId)
         tokenDict = self.getTokenDict()
         self.logger.debug('url: %s', url)
-        r = requests.get(url, params=tokenDict, verify=False)
         self.logger.debug("status_code: %s", r.status_code)
+        r = requests.get(url, params=tokenDict, verify=None)
         accntDtls = r.json()
         self.logger.debug("response: %s", accntDtls)
         return accntDtls
@@ -603,7 +603,7 @@ class PMP(object):
               str(accntId) + '/password'
         tokenDict = self.getTokenDict()
         self.logger.debug("url used to get password %s", url)
-        r = requests.get(url, params=tokenDict, verify=False)
+        r = requests.get(url, params=tokenDict, verify=None)
         passwdStruct = r.json()
         opKey = self.const.resourcekeys_operation
         detKey = self.const.resourcekeys_Details
