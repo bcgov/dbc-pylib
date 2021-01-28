@@ -16,7 +16,7 @@ def FMEServer_ConnectParams_dev():
     secretsFile = os.path.join(os.path.dirname(__file__), '..', 'secrets',
                                'secrets.json')
     secretsFile = os.path.realpath(secretsFile)
-    print(f'secretsFile {secretsFile}')
+    print 'secretsFile', secretsFile
     creds = DBCSecrets.GetSecrets.CredentialRetriever(secretsFile)
     secrets = creds.getSecretsByLabel('fmetst')
     host = secrets.getHost()
@@ -29,7 +29,7 @@ def KirkConnectInfo_local():
     secretsFile = os.path.join(os.path.dirname(__file__), '..', 'secrets',
                                'secrets.json')
     secretsFile = os.path.realpath(secretsFile)
-    print('secretsFile {secretsFile}')
+    print 'secretsFile', secretsFile
     creds = DBCSecrets.GetSecrets.CredentialRetriever(secretsFile)
     credsMisc = creds.getMiscParams()
     url = credsMisc.getParam('appkirkhost_local')

@@ -12,7 +12,7 @@ import re
 import warnings
 
 # import FMWParser
-from . import FMWParserConstants
+import FMWParserConstants
 
 # pylint: disable=invalid-name
 # pylint: disable=logging-format-interpolation
@@ -126,7 +126,7 @@ class FMETransformers(object):
         self.transformerList = []
         for trans in self.transfomerStruct:
             self.logger.debug("trans: %s", trans)
-            print(f"trans: {trans}")
+            print "trans: %s", trans
             transformer = Transformer(trans)
             self.transformerList.append(transformer)
 
@@ -457,7 +457,7 @@ class AttributeRenamerTransformer(TransfomerBase):
                 warnings.warn(msg)
             fldMap.append([oldValue, newValue])
         if version not in ['1', '3', '2']:
-            print(f'fldMapStr {fldMapStr}')
+            print fldMapStr
             msg = 'Unknown attribute renamer version, uncertain how to' + \
                   ' parse attribute renamers of this type: {0}'
             raise UnknownAttributeRenamerVersion(msg.format(version))
@@ -473,7 +473,7 @@ class FMEPublishedParameters(object):
         self.logger = logging.getLogger(__name__)
         self.publishedParams = publishedParams
         self.hasPubParamRegex = re.compile(
-            FMWParserConstants.PUBPARAM_ANY, re.IGNORECASE)  # @UndefinedVariable
+            FMWParserConstants.PUBPARAM_ANY, re.IGNORECASE)
 
     def getJson(self):
         '''
@@ -526,7 +526,7 @@ class FMEPublishedParameters(object):
         outStr = inStr
         if self.hasPubParams(inStr):
             findParamRegex = re.compile(FMWParserConstants.PUBPARAM_SINGLE,
-                                        re.IGNORECASE)  # @UndefinedVariable
+                                        re.IGNORECASE)
             for pubParamRegex in findParamRegex.finditer(inStr):
                 paramName = inStr[pubParamRegex.start():pubParamRegex.end()]
                 if paramName in self.publishedParams:

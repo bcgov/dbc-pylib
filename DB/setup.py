@@ -7,7 +7,6 @@ Created on Feb 8, 2017
 from setuptools import setup
 
 setup(name='DB',
-      python_requires='>3.6.0',
       version='1.0',
       description='wrapper for database communication',
       url='httpshttps://github.com/bcgov/dbc-pylib/tree/master/DB',

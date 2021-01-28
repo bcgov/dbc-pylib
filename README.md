@@ -1,7 +1,5 @@
 # DataBC Python Library
 
-## This is the branch used to manage the pytho
-
 This folder contains a bunch of python packages that tie together higher level functionality.  
 The code here is used by multiple automation processes and is intended to make it easier to automate various tasks in support of databc's business.
 

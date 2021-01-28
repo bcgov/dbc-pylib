@@ -147,7 +147,7 @@ class FMWParser(object):
         dataSets = self.getDataSets()
         destDataSet = []
         for dataset in dataSets:
-            if dataset['IS_SOURCE'] != 'true':
+            if dataset['IS_SOURCE'] <> 'true':
                 destDataSet.append(dataset)
         return destDataSet
 
@@ -163,9 +163,9 @@ class FMWParser(object):
         # pubParamRegex = re.compile(r'^\s*\$\(([A-Za-z0-9_-]+)\)\s*$', re.IGNORECASE)
         # pubParamSchema = re.compile(r'^\s*\$\(([A-Za-z0-9_-]+)\)\.[A-Za-z0-9_-]\s*$', re.IGNORECASE)
 
-        pubParamOnlyRegex = re.compile(FMWParserConstants.PUBPARAM_ONLY_REGEX, re.I)  # @UndefinedVariable
-        schemaOnlyRegex = re.compile(FMWParserConstants.PUBPARAM_SCHEMA_REGEX, re.I)  # @UndefinedVariable
-        featClsOnlyRegex = re.compile(FMWParserConstants.PUBPARAM_FEATURE_REGEX, re.I)  # @UndefinedVariable
+        pubParamOnlyRegex = re.compile(FMWParserConstants.PUBPARAM_ONLY_REGEX, re.I)
+        schemaOnlyRegex = re.compile(FMWParserConstants.PUBPARAM_SCHEMA_REGEX, re.I)
+        featClsOnlyRegex = re.compile(FMWParserConstants.PUBPARAM_FEATURE_REGEX, re.I)
 
         params = self.getPublishedParams()
         self.logger.debug("params: {0}".format(params))
@@ -226,7 +226,7 @@ class FMWParser(object):
         # don't sub in if the pub param is scripted
         self.logger.debug("pub param name: {0}".format(pubParmName))
         self.logger.debug("params: {0}".format(params))
-        if pubParmName in params and params[pubParmName]['TYPE'] != 'Python Script:':
+        if pubParmName in params and params[pubParmName]['TYPE'] <> 'Python Script:':
             paramValue = params[pubParmName]['DEFAULT_VALUE']
         elif pubParmName not in params:
             # when fme parameters are linked to datasets they will take on this structure:
@@ -240,7 +240,7 @@ class FMWParser(object):
                 msg = 'unable to extract the parameter value for the parameter ' + \
                       'name {0}.  variable params: {1}'
                 msg = msg.format(pubParmName, params)
-                raise ValueError(msg)
+                raise ValueError, msg
         else:
             # just leave it as is by returning the parameter name
             # this is what the normal data would look like:
@@ -324,10 +324,28 @@ class FMWParser(object):
                 transfrmrDict = self.recurse(transfrmr)
                 proceed = True
                 if enabledOnly:
-                    if transfrmrDict['ENABLED'] != 'true':
+                    if transfrmrDict['ENABLED'] <> 'true':
                         proceed = False
                 if proceed:
                     transList.append(transfrmrDict)
+
+#                 proceed = True
+#                 if enabledOnly:
+#                     if transfrmr.attrib['ENABLED'] <> 'true':
+#                         proceed = False
+#                 if proceed:
+#                     transDict = {}
+#                     for transAtrib in transfrmr.attrib:
+#                         transDict[transAtrib] = transfrmr.attrib[transAtrib]
+#                         self.logger.debug("at: %s, %s ", transAtrib, transfrmr.attrib[transAtrib])
+#                         print 'at:', transAtrib, transfrmr.attrib[transAtrib]
+#                     transList.append(transDict)
+#                     self.logger.debug(transDict)
+#
+#                     # children
+#                     for child in transfrmr.getchildren():
+#                         print 'chld', child.tag
+#
         return transList
 
     def recurse(self, xmlObj, chldTag='CHILD', nameTag='ELEMENTNAME', textTag='ELEMENTTEXT'):
@@ -336,9 +354,9 @@ class FMWParser(object):
         :type xmlObj: lxml.objectify element
         :param chldTag: the name of the tag that children elements will be stored
                         in
-        :param nameTag: the name of the tag used to store the child element tag
+        :param nameTag: the name of the tag used to store the child element tag 
                         names.
-
+                        
         using defaults takes:
         <TRANSFORMER
              IDENTIFIER="26"
@@ -355,9 +373,9 @@ class FMWParser(object):
              <XFORM_ATTR ATTR_NAME="geodb_oid" IS_USER_CREATED="false" FEAT_INDEX="0" />
              <XFORM_ATTR ATTR_NAME="OBJECTID" IS_USER_CREATED="false" FEAT_INDEX="0" />
         </TRANSFORMER>
-
+        
         and converts to:
-        [
+        [   
             {'BOUNDING_RECT': '727.232 -209 -1 -1',
             'ENABLED': 'true',
             'IDENTIFIER': '26',
@@ -379,13 +397,13 @@ class FMWParser(object):
                     ]
             }
         ]
-
+    
         '''
         transDict = {}
         chldrn = []
         # get all the attributes
         for objAtribName in xmlObj.attrib:
-            # print '{0} = {1}'.format(objAtribName, xmlObj.attrib[objAtribName])
+            #print '{0} = {1}'.format(objAtribName, xmlObj.attrib[objAtribName])
             transDict[objAtribName] = xmlObj.attrib[objAtribName]
         transDict[nameTag] = xmlObj.tag
         if xmlObj.text:
@@ -430,7 +448,7 @@ class FMWParser(object):
             # starting to remove some elements trying to
             # get to the point where the first element in the
             # list is the pub param name
-            # elems to delete:
+            # elems to delete:      
             elems2Delete = ['GUI', 'OPTIONAL', 'IGNORE', 'TEXT', 'STRING_OR_CHOICE', \
                              'TEXT_OR_ATTR', 'TEXT_EDIT_PYTHON_PARM', \
                              'SOURCE_GEODATABASE', 'MULTIFILE', 'DIRNAME', \
@@ -441,13 +459,13 @@ class FMWParser(object):
             while cnter < len(elems2Delete):
                 elem2Delete = elems2Delete[cnter]
                 if pubParamNameLst[0].upper().strip() == elem2Delete:
-                    # self.logger.debug("removing: %s", pubParamNameLst[0])
+                    #self.logger.debug("removing: %s", pubParamNameLst[0])
                     del pubParamNameLst[0]
                     cnter = 0
                 else:
                     cnter += 1
             self.logger.debug('pubParamNameLst after trim: %s', pubParamNameLst)
-            # for elem2Delete in elems2Delete:
+            #for elem2Delete in elems2Delete:
             #    self.logger.debug("looking for: %s", elem2Delete)
             #    if pubParamNameLst[0].upper().strip() == elem2Delete:
             #        self.logger.debug("removing: %s", pubParamNameLst[0])
@@ -492,7 +510,7 @@ class FMWParser(object):
         extracting information.
         '''
         self.parseXML()
-        pubParams = self.getPublishedParams()
+        pubParams = self.getPublishedParams()        
         transformers = self.getTransformers()
         featureClassStruct = self.getFeatureTypes()
         #      transformerStruct, featureClassStruct, publishedParams):
@@ -511,11 +529,11 @@ class FMWParser(object):
         self.parseTCL()
         # gets the field maps defined by drawing lines between columns
         fldMaps = self.tclObj.getFieldMaps()
-
+        
         # get the field maps defined by attributeRenamers
         wrkSpc = self.getFMEWorkspace()
         trans = wrkSpc.getTransformers()
-
+        
         atribRenamerTransformers = trans.getAttributeRenamerTransformers()
         fldMapAtrib = []
         self.logger.debug("atribRenamerTransformers: %s", atribRenamerTransformers)
@@ -523,22 +541,32 @@ class FMWParser(object):
             self.logger.debug('atribRenamerTransformer: %s', atribRenamerTransformer)
             fldMap = atribRenamerTransformer.getAttributeRenamerFieldMap()
             self.logger.debug("fieldmaps: %s", fldMap)
-            fldMapAtrib.append(fldMap)
-
+            fldMapAtrib.append(fldMap) 
+        
+        #fldMapAtrib = trans.getAttributeRenamerFieldMap()
+        
         if fldMaps and fldMapAtrib:
             msg = 'Field maps are defined using attributeRenamers as well as' + \
                   'by dragging columns.  This field map cannot be extracted'
-            # raise ConflictingFieldMaps, msg
+            #raise ConflictingFieldMaps, msg
             self.logger.warning(msg)
             warnings.warn(msg)
-            # combining the lists, so [[[1,2],[2,3]]] and [[['a',b'],['c','d']]]
+            # combining the lists, so [[[1,2],[2,3]]] and [[['a',b'],['c','d']]] 
             # become [[[1,2],[2,3]], [['a',b'],['c','d']]]
             newList = []
             for fldMapList in fldMaps:
                 newList.append(fldMapList)
             for fldMapList in fldMapAtrib:
                 newList.append(fldMapList)
-
+#             pp = pprint.PrettyPrinter(indent=4)
+#             print 'list 1'
+#             pp.pprint(fldMaps)
+#             print 'list 2'
+#             pp.pprint(fldMapAtrib)
+#             print 'combined'
+#             pp.pprint(newList)
+#             raise ConflictingFieldMaps, msg
+            
             fldMaps = newList
         elif not fldMaps:
             fldMaps = fldMapAtrib
@@ -560,25 +588,25 @@ class FMWParser(object):
         '''
         transformers = self.getTransformers()
         if 'attributeRenamer' in transformers:
-            print('heloo')
+            print 'heloo'
 
     def getDestinationSchema(self, fcName):
         '''
-        :param fcName: name of the feature class / feature type who's schema you
+        :param fcName: name of the feature class / feature type who's schema you 
                        are trying to retrieve.
-
-        destination schema's can be defined in a number of different locations.  the
-        method will search in the following order in an attempt to extract the destination
+        
+        destination schema's can be defined in a number of different locations.  the 
+        method will search in the following order in an attempt to extract the destination 
         schema from this dataset.
-          - First finds destination feature classes for the FMW, Then searches the following
+          - First finds destination feature classes for the FMW, Then searches the following 
            parameters for the feature classes looking for destination schema:
-             - FEATURE_TYPE_NAME_QUALIFIER - if this is filled in assumes that this
+             - FEATURE_TYPE_NAME_QUALIFIER - if this is filled in assumes that this 
                                              is the schema name, if blank caries on...
              - NODE_NAME - loooks at the node name, if it can be split on a '.' character
-                           then assumes the format is schema.featureclassname and
+                           then assumes the format is schema.featureclassname and 
                            pulls the schema from the start of this name, otherwise...
           - next if none of the above attempts to find the destination schema are
-            successful then reads the published parameters and gets it from
+            successful then reads the published parameters and gets it from 
             DEST_SCHEMA
         '''
         destschemas = []
@@ -595,7 +623,7 @@ class FMWParser(object):
                 schema = dest.getParamName('FEATURE_TYPE_NAME_QUALIFIER')
                 self.logger.debug("FEATURE_TYPE_NAME_QUALIFIER: %s", schema)
                 if not schema:
-                    fullFcName = dest.getParamName('NODE_NAME')
+                    fullFcName =  dest.getParamName('NODE_NAME')
                     self.logger.debug("node name: %s", fullFcName)
                     fullFcNameSplit = fullFcName.split('.')
                     if len(fullFcNameSplit) == 2:
@@ -611,10 +639,9 @@ class FMWParser(object):
                         # types of parameters are stored
                         if pubParams.hasPubParams('DEST_SCHEMA_1'):
                             schema = pubParams.getPublishedParameterValue('DEST_SCHEMA_1')
-            if schema:
+            if schema: 
                 break
         return schema
-
 
 class FMWRestruct():
     '''
@@ -735,10 +762,10 @@ class FMWRestruct():
                 '''
                 self.fmeCommandlineUsage[len(self.fmeCommandlineUsage) - 1] = self.fmeCommandlineUsage[len(self.fmeCommandlineUsage) - 1] + line
             else:
-                print('problem problem!')
+                print 'problem problem!'
                 self.logger.error('PROBLEM!  %s', line)
                 msg = 'PROBLEM WITH THIS LINE:\n' + line
-                raise ValueError(msg)
+                raise ValueError, msg
             # First thing is to remove the leading #! characters
             # line = self.removeLeadingChars(line)
             # is the line the xml definition line
@@ -796,4 +823,5 @@ class FMWRestruct():
 
 # Deprecated!  Next time working on this lib determine if can delete this.
 #              Left over from older attempt to parse these files.
+
 

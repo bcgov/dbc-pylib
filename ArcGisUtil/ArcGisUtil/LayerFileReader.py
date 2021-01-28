@@ -9,12 +9,9 @@ used to populate GWIP tables used by the custom layer tool.
 '''
 import logging
 import os
-import platform
-import archook
 
-# setup for arcpro paths
-archook.get_arcpy(pro=True)
-import arcpy
+import arcpy  # @UnresolvedImport
+
 
 class ReadLayerFiles(object):
     '''
@@ -30,18 +27,13 @@ class ReadLayerFiles(object):
         self.dataDir = scrtchSpc
         self.user = user
         self.passwd = passwd
-        self.layerPropertyList = [
-            'dataSource', 'connectionProperties', 'name', 'longName',
-            'CREDITS', 'definitionQuery', 'maxThreshold',
-            'minThreshold', 'transparency', 'contrast', 'brightness']
 
     def createSDEConnection(self, sdeServer, sdePort):
         '''
         :param sdeServer: the sde host to connect to
         :type sdeServer: str
 
-        :param sdePort: the sde port that the application server is
-                        listening on
+        :param sdePort: the sde port that the application server is listening on
         :type str:
 
         Creates a arc sde connection file in the data directory named
@@ -49,13 +41,13 @@ class ReadLayerFiles(object):
         '''
         connFile = os.path.join(self.dataDir, 'TempConnection' + '.sde')
         if os.path.exists(connFile):
+            # print u'deleting and recreating the connection file'
             self.logger.debug("deleting and recreating the connection file")
             os.remove(connFile)
         self.logger.debug("Creating the connection file...")
         arcpy.CreateArcSDEConnectionFile_management(
-            self.dataDir, "TempConnection", sdeServer, sdePort, "",
-            "DATABASE_AUTH", self.user, self.passwd, "SAVE_USERNAME",
-            "SDE.DEFAULT", "SAVE_VERSION")
+            self.dataDir, "TempConnection", sdeServer, sdePort, "", "DATABASE_AUTH", \
+            self.user, self.passwd, "SAVE_USERNAME", "SDE.DEFAULT", "SAVE_VERSION")
         self.logger.debug("Connection file successfully created...")
 
     def readLyrFile(self, srcLyrFile):
@@ -68,11 +60,10 @@ class ReadLayerFiles(object):
                          from the lyr.name
         schema         - Name of the schema the layer file hits
                          (from parsing the schema off of lyr.datasetName)
-        table_name     - Name of the table that the layer file hits in
-                         the schema
+        table_name     - Name of the table that the layer file hits in the schema
                         (from parsing the feature_class from lyr.datasetName)
-        description    - Comes from the sub directory that the .lyr files
-                         are found in. for example:
+        description    - Comes from the sub directory that the .lyr files are found in.
+                         for example:
                          $(LAYERLIBDIR)/Administrative Boundaries/
                               First_Nation_Traditional_Use_Sites_All.lyr
                          the description would be 'Administrative Boundaries'
@@ -84,23 +75,27 @@ class ReadLayerFiles(object):
         :type srcLyrFile: str
         '''
         self.logger.info(u'inlayer file is: %s', srcLyrFile)
-        lyrObj = arcpy.mp.LayerFile(srcLyrFile)
-        lyrs = lyrObj.listLayers()
+        lyrObj = arcpy.mapping.Layer(srcLyrFile)
+        if lyrObj.supports('description'):
+            self.logger.debug(u'DESCRIPTION: %s', lyrObj.description)
         lyrInfo = []
+        if lyrObj.isGroupLayer:
+            propertyList = ['workspacePath', 'description', 'serviceProperties', \
+                            'datasetName', 'dataSource', 'name', 'longName']
+            for prop in propertyList:
+                if lyrObj.supports(prop):
+                    val = eval('lyrObj.' + prop)
+                    self.logger.debug(u'GROUPLAYER: {0}:{1}'.format(prop, val))
+            lyrList = arcpy.mapping.ListLayers(lyrObj)
 
-        for lyr in lyrs:
-            if lyr.isGroupLayer:
-                # basically if its a group layer skip it
-                for prop in self.layerPropertyList:
-                    if lyr.supports(prop.upper()):
-                        val = eval('lyr.' + prop)
-                        self.logger.debug(u'GROUPLAYER: {0}:{1}'.format(prop,
-                                                                        val))
-            else:
-                self.logger.info(f"adding layer : {lyr.name}")
+            for lyr in lyrList:
                 retData = self.reportLyer(lyr)
                 retData['LayerFullFilePath'] = srcLyrFile
                 lyrInfo.append(retData)
+        else:
+            retData = self.reportLyer(lyrObj)
+            retData['LayerFullFilePath'] = srcLyrFile
+            lyrInfo.append(retData)
         return lyrInfo
 
     def reportLyer(self, inLayer):
@@ -110,14 +105,17 @@ class ReadLayerFiles(object):
         Reads pertinent properties from the layer file and adds the information
         to the log.
         '''
+
+        propertyList = ['workspacePath', 'description', 'serviceProperties',
+                        'datasetName', 'dataSource', 'name', 'longName']
         retData = {}
-        for prop in self.layerPropertyList:
+        for prop in propertyList:
             retData[prop] = ''
-            if inLayer.supports(prop.upper()):
+            if inLayer.supports(prop):
                 val = eval('inLayer.' + prop)
-                self.logger.debug(u"    {0}:{1}".format(prop, val))
+                self.logger.info(u"    {0}:{1}".format(prop, val))
                 retData[prop] = val
             else:
-                self.logger.debug(u"    {0}:{1}".format(prop, u'None'))
+                self.logger.info(u"    {0}:{1}".format(prop, u'None'))
                 retData[prop] = None
         return retData

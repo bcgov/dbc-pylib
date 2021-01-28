@@ -4,7 +4,7 @@ Created on Apr 23, 2018
 @author: kjnether
 '''
 import pytest
-from helpers import TestingUtilities  # @UnresolvedImport
+from ..helpers import TestingUtilities  # @UnresolvedImport
 import FMEUtil.FMWParser
 import logging
 import os.path
@@ -29,7 +29,7 @@ def FMWParserInstance(logFixture):
     fmwParser = FMEUtil.FMWParser.FMWParser(fullFMWPath)
 
     yield fmwParser
-    print('fixture finished')
+    print 'fixture finished'
 
 
 @pytest.fixture()
