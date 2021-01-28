@@ -7,11 +7,12 @@ A Wrapper to support easy extraction of specific information from data that
 is returned from various FME Server End points.
 '''
 
-import FMEConstants
-import logging
+from . import FMEConstants
 import KirkUtil.constants
-import sys
 import dateutil.parser
+import logging
+import re
+import sys
 
 
 class Schedules(object):
@@ -22,7 +23,7 @@ class Schedules(object):
 
     def __init__(self, schedulesData):
         self.logger = logging.getLogger(__name__)
-        print 'name:', __name__
+        self.logger.debug("name: {0}".format(__name__))
         self.logger.debug("logger created for {0}!".format(__name__))
         self.data = schedulesData
         self.curIter = 0
@@ -48,7 +49,7 @@ class Schedules(object):
                 schedExists = True
                 self.logger.debug("job exists: %s", schedName)
                 pubParms = sched.getPublishedParameters()
-                self.logger.debug("published Params: %s", unicode(pubParms))
+                self.logger.debug("published Params: %s", str(pubParms))
                 break
         return schedExists
 
@@ -124,7 +125,8 @@ class Schedules(object):
                 pp = sched.getPublishedParameters()
                 ppKirkJobId = pp.getKirkJobId()
                 self.logger.debug("kirk job id: %s",)
-                if unicode(ppKirkJobId) == unicode(kirkJobId):
+                
+                if str(ppKirkJobId) == str(kirkJobId):
                     retVal = True
                     self.logger.debug("found match for %s", ppKirkJobId)
                     break
@@ -170,11 +172,14 @@ class Schedules(object):
             self.reset()
             raise StopIteration
         else:
-            #self.logger.debug("getting the next item, %s", self.curIter)
+            # self.logger.debug("getting the next item, %s", self.curIter)
             schedData = self.data[self.curIter]
             schedObj = Schedule(schedData)
             self.curIter += 1
         return schedObj
+    
+    def __next__(self):
+        return self.next()
 
     def reset(self):
         self.curIter = 0
@@ -198,9 +203,9 @@ class Schedule(object):
         the schedule departs from the standard case this should retrieve the
         correct case.
         '''
-        #self.logger.debug("retrieving the schedule name")
+        # self.logger.debug("retrieving the schedule name")
         key = FMEConstants.Schedule.name.name
-        #self.logger.debug("key is: %s", key)
+        # self.logger.debug("key is: %s", key)
         return self.data[key]
 
     def getPublishedParameters(self):
@@ -208,7 +213,7 @@ class Schedule(object):
         publishedParameters = FMEConstants.Schedule.publishedParameters.name
         schedulePubParams = self.data[request][publishedParameters]
         pubparams = SchedulePublishedParameters(schedulePubParams)
-        #self.logger.debug("pub params: %s", unicode(pubparams))
+        # self.logger.debug("pub params: %s", unicode(pubparams))
         return pubparams
 
     def getCategory(self):
@@ -293,7 +298,7 @@ class SchedulePublishedParameters(object):
             self.logger.warning(frameworkParamName)
         return param
 
-    def getDestinationFeature(self, position=None):
+    def getDestinationFeature(self, position=None, noSchema=True):
         '''
         if the schedule uses the DBC published parameter standard then this
         method will extract the Destination feature.  There can be more then
@@ -304,6 +309,15 @@ class SchedulePublishedParameters(object):
 
         :param position: see notes above
         :type position: str/int
+        :param noSchema: if this parameter is set to true the the dest
+                         table will be evaluated to determine whether it
+                         has a schema prefix.  If so it will be removed.
+                         if no schema prefix exists then it will return
+                         just the table name.
+
+                         'schema.table' will turn into 'table'
+                         'table' will remain 'table'
+        :type noSchema: bool
         '''
         param = None
         if position is None:
@@ -317,6 +331,13 @@ class SchedulePublishedParameters(object):
             msg = 'Trying to retrieve the parameter %s however it doesnt ' + \
                   'exist'
             self.logger.warning(msg, destFeatParamName)
+        else:
+            if noSchema:
+                isTableSchemaQualified = re.compile("^\w+\.\w+$")
+                if isTableSchemaQualified.match(param):
+                    # take out the schema
+                    paramList = param.split('.')
+                    param = paramList[-1]
         return param
 
     def getDestDbEnvKey(self):
@@ -332,7 +353,7 @@ class SchedulePublishedParameters(object):
 
     def getParamValue(self, paramName):
         retVal = None
-        #self.logger.debug("paramName: %s", paramName)
+        # self.logger.debug("paramName: %s", paramName)
         for param in self.data:
             if param['name'] == paramName:
                 # sometimes the data is stored in a parameter called 'raw'
@@ -382,6 +403,9 @@ class SchedulePublishedParameters(object):
             pubParamData = PublishedParameter(pubParam)
             self.curIter += 1
         return pubParamData
+    
+    def __next__(self):
+        return self.next()
 
     def reset(self):
         self.curIter = 0
@@ -419,6 +443,7 @@ class Workspaces(object):
 
     def populateworkspaceNames(self):
         self.workspaceNames = self.data.keys()
+        self.workspaceNames = list(self.workspaceNames)
         self.workspaceNames.sort()
 
     def __iter__(self):
@@ -439,6 +464,9 @@ class Workspaces(object):
             wrkspcObj = Workspace(wrkspceData)
             self.curIter += 1
         return wrkspcObj
+    
+    def __next__(self):
+        return self.next()
 
 
 class Workspace(object):

@@ -8,8 +8,7 @@ to the PMP rest interface from python
 '''
 import logging
 import os.path
-import urlparse
-
+from urllib.parse import urlparse
 import requests
 
 
@@ -239,6 +238,8 @@ class PMP(object):
         dets = self.const.resourcekeys_Details
         accntList = self.const.resourceKeys_accountList
         justAccnts = accnts[opKey][dets][accntList]
+
+        self.logger.debug("justAccnts: %s", justAccnts)
         return justAccnts
 
     def getAccountId(self, accntName, resourceId):

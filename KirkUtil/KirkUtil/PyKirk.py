@@ -13,7 +13,7 @@ from __future__ import unicode_literals
 
 import logging
 import os.path
-import urlparse
+import urllib
 
 import requests
 
@@ -29,7 +29,7 @@ class BaseRestCall(object):
     def __init__(self, baseurl, token, apiVersion=1):
         self.logger = logging.getLogger(__name__)
         self.baseurl = baseurl
-        self.restUrl = urlparse.urljoin(self.baseurl,
+        self.restUrl = urllib.parse.urljoin(self.baseurl,
                                         'api/v{0}/'.format(apiVersion))
         self.authHeader = {'Authorization': 'Token {0}'.format(token)}
 
@@ -252,7 +252,7 @@ class FieldMaps(object):
     def __init__(self, baseObj):
         self.logger = logging.getLogger(__name__)
         self.baseObj = baseObj
-        fldmapUrl = urlparse.urljoin(self.baseObj.restUrl,
+        fldmapUrl = urllib.parse.urljoin(self.baseObj.restUrl,
                                      constants.KirkApiPaths.FieldMaps, True)
         self.fldmapUrl = self.baseObj.fixUrlPath(fldmapUrl)
         self.logger.debug("fieldmaps url: %s", self.fldmapUrl)
@@ -386,7 +386,7 @@ class FieldMaps(object):
         :type cancelUpdate: bool
         '''
 
-        fldMapUrl = urlparse.urljoin(self.fldmapUrl, str(fldMapId), True)
+        fldMapUrl = urllib.parse.urljoin(self.fldmapUrl, str(fldMapId), True)
         fldMapUrl = self.baseObj.fixUrlPath(fldMapUrl)
 
         resp = requests.delete(fldMapUrl, headers=self.baseObj.authHeader)
@@ -413,7 +413,7 @@ class Transformers(object):
     def __init__(self, baseObj):
         self.logger = logging.getLogger(__name__)
         self.baseObj = baseObj
-        transformerUrl = urlparse.urljoin(self.baseObj.restUrl,
+        transformerUrl = urllib.parse.urljoin(self.baseObj.restUrl,
                                           constants.KirkApiPaths.Transformers,
                                           True)
         self.transformerUrl = self.baseObj.fixUrlPath(transformerUrl)
@@ -552,8 +552,8 @@ class Transformers(object):
                                 type(param_value),
                                 type(paramValue_value)))
                             self.logger.info("converting both to unicode")
-                            param_value = unicode(param_value)
-                            paramValue_value = unicode(paramValue_value)
+                            #param_value = unicode(param_value)
+                            #paramValue_value = unicode(paramValue_value)
                         if param_name == paramName_value and \
                            param_value == paramValue_value:
                             matched = True
@@ -584,7 +584,7 @@ class Transformers(object):
         :type transformerid:
         '''
 
-        transformerUrl = urlparse.urljoin(self.transformerUrl,
+        transformerUrl = urllib.parse.urljoin(self.transformerUrl,
                                           str(transformerid), True)
         transformerUrl = self.baseObj.fixUrlPath(transformerUrl)
 
@@ -612,7 +612,7 @@ class Destinations(object):
     def __init__(self, baseObj):
         self.logger = logging.getLogger(__name__)
         self.baseObj = baseObj
-        destinationsUrl = urlparse.urljoin(
+        destinationsUrl = urllib.parse.urljoin(
             self.baseObj.restUrl,
             constants.KirkApiPaths.Destinations, True)
         self.destinationsUrl = self.baseObj.fixUrlPath(destinationsUrl)
@@ -642,7 +642,7 @@ class Sources(object):
     def __init__(self, baseObj):
         self.logger = logging.getLogger(__name__)
         self.baseObj = baseObj
-        sourcesUrl = urlparse.urljoin(self.baseObj.restUrl,
+        sourcesUrl = urllib.parse.urljoin(self.baseObj.restUrl,
                                       constants.KirkApiPaths.Sources, True)
         self.sourcesUrl = self.baseObj.fixUrlPath(sourcesUrl)
         self.logger.debug("sources url: %s", self.sourcesUrl)
@@ -770,7 +770,7 @@ class Sources(object):
         :param srcId: the source id that is used to identify the source
                       record that is to be deleted.
         '''
-        srcUrl = urlparse.urljoin(self.sourcesUrl, str(srcId), True)
+        srcUrl = urllib.parse.urljoin(self.sourcesUrl, str(srcId), True)
         srcUrl = self.baseObj.fixUrlPath(srcUrl)
 
         resp = requests.delete(srcUrl, headers=self.baseObj.authHeader)
@@ -796,7 +796,7 @@ class Jobs(object):
         self.logger.debug("self.baseObj.restUrl: %s", self.baseObj.restUrl)
         self.logger.debug("constants.KirkApiPaths.Jobs: %s",
                           constants.KirkApiPaths.Jobs)
-        jobsUrl = urlparse.urljoin(self.baseObj.restUrl,
+        jobsUrl = urllib.parse.urljoin(self.baseObj.restUrl,
                                    constants.KirkApiPaths.Jobs, True)
         self.jobsUrl = self.baseObj.fixUrlPath(jobsUrl)
         self.logger.debug("kirk jobs url: %s", jobsUrl)
@@ -835,7 +835,7 @@ class Jobs(object):
         '''
         # could use the caching, but thinking stay away unless becomes a big
         # performance issue
-        jobUrl = urlparse.urljoin(self.jobsUrl, str(jobid), True)
+        jobUrl = urllib.parse.urljoin(self.jobsUrl, str(jobid), True)
         jobUrl = self.baseObj.fixUrlPath(jobUrl)
 
         response = requests.get(jobUrl, headers=self.baseObj.authHeader)
@@ -852,9 +852,9 @@ class Jobs(object):
         '''
         :param jobid: the jobid who's source you want to return
         '''
-        jobUrl = urlparse.urljoin(self.jobsUrl, str(jobid), True)
+        jobUrl = urllib.parse.urljoin(self.jobsUrl, str(jobid), True)
         jobUrl = self.baseObj.fixUrlPath(jobUrl)
-        jobUrl = urlparse.urljoin(jobUrl, constants.KirkApiPaths.Sources, True)
+        jobUrl = urllib.parse.urljoin(jobUrl, constants.KirkApiPaths.Sources, True)
         jobUrl = self.baseObj.fixUrlPath(jobUrl)
         response = requests.get(jobUrl, headers=self.baseObj.authHeader)
         self.logger.debug("response Status: %s", response.status_code)
@@ -871,9 +871,9 @@ class Jobs(object):
         '''
         gets the fieldmaps for the current jobid
         '''
-        jobUrl = urlparse.urljoin(self.jobsUrl, str(jobid), True)
+        jobUrl = urllib.parse.urljoin(self.jobsUrl, str(jobid), True)
         jobUrl = self.baseObj.fixUrlPath(jobUrl)
-        jobUrl = urlparse.urljoin(jobUrl, constants.KirkApiPaths.FieldMaps,
+        jobUrl = urllib.parse.urljoin(jobUrl, constants.KirkApiPaths.FieldMaps,
                                   True)
         jobUrl = self.baseObj.fixUrlPath(jobUrl)
         self.logger.debug("job fieldmap url: %s", jobUrl)
@@ -935,7 +935,7 @@ class Jobs(object):
 
     def putJob(self, jobid, **params):
         currentJobParams = self.getJob(jobid)
-        jobsUrl = urlparse.urljoin(self.jobsUrl, str(jobid), True)
+        jobsUrl = urllib.parse.urljoin(self.jobsUrl, str(jobid), True)
         jobsUrl = self.baseObj.fixUrlPath(jobsUrl)
         self.logger.debug("put url: %s", jobsUrl)
         newJobParams = {}
@@ -977,10 +977,10 @@ class Jobs(object):
         '''
         :param jobid: the unique identifier for the job that is to be deleted
         '''
-        jobsUrl = urlparse.urljoin(self.jobsUrl, str(jobid), True)
+        jobsUrl = urllib.parse.urljoin(self.jobsUrl, str(jobid), True)
         jobsUrl = self.baseObj.fixUrlPath(jobsUrl)
         self.logger.debug("delete url: %s", jobsUrl)
-        print 'delete jobsUrl', jobsUrl
+        #print 'delete jobsUrl', jobsUrl
         resp = requests.delete(jobsUrl, headers=self.baseObj.authHeader)
 
         if resp.status_code < 200 or resp.status_code >= 300:
@@ -1041,9 +1041,9 @@ class Jobs(object):
         return jobId
 
     def getJobTransformers(self, jobid):
-        jobUrl = urlparse.urljoin(self.jobsUrl, str(jobid), True)
+        jobUrl = urllib.parse.urljoin(self.jobsUrl, str(jobid), True)
         jobUrl = self.baseObj.fixUrlPath(jobUrl)
-        jobUrl = urlparse.urljoin(jobUrl,
+        jobUrl = urllib.parse.urljoin(jobUrl,
                                   constants.KirkApiPaths.Transformers, True)
         jobUrl = self.baseObj.fixUrlPath(jobUrl)
         response = requests.get(jobUrl, headers=self.baseObj.authHeader)

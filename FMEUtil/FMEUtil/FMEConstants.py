@@ -19,10 +19,8 @@ class Schedule(Enum):
     enabled = 8
     recurrence = 9
     repository = 10
-    request = 11
-    publishedParameters = 12
-    workspacePath = 13
-    workspace = 14
+    workspacePath = 11
+    workspace = 12
     
 class FMEFrameworkPublishedParameters(Enum):
     DEST_SCHEMA = 1
