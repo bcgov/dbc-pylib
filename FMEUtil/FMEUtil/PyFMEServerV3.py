@@ -1212,8 +1212,11 @@ class Repository(object):
             # dataPayload = urllib.quote_plus(dataPayload)
             self.logger.debug('url: %s', self.url)
             self.logger.debug('dataPayload: %s', dataPayload)
+            header = {'Content-Type': 'application/x-www-form-urlencoded',
+                      'Accept': 'application/json'}
             response = self.baseObj.postResponseFormData(self.url,
                                                          data=dataPayload,
+                                                         header=header,
                                                          returnType=None)
             self.logger.debug("response from post: %s", response)
             self.logger.debug("created the repo: %s", repName)
