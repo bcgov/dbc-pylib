@@ -18,7 +18,7 @@ You should see some examples there for the:
 
 FMEUtil
  - **PyFMEServerV3.py**: a wrapper to version 3 of the FME Server Rest api 
- - **PyFMEServerV2.py**: a wrapper to version 2 of the FME Server Rest api
+ - **PyFMEServerV2.py**: a wrapper to version 2 of the FME Server Rest api - no longer supported.
  - **FMEServerApiData.py**: the rest api can return large complicated data 
                             structures that require a lot of parsing work
                             to get to the information required.  This module
