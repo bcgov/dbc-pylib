@@ -393,7 +393,7 @@ class PMP(object):
         self.logger.debug("params are %s, %s, %s", accountName,
                           apiUrl, resourceName)
 
-        parsed_uri = urlparse.urlparse(apiUrl)
+        parsed_uri = urlparse(apiUrl)
         apiUrl = parsed_uri.netloc
         self.logger.debug("apiUrl: %s", apiUrl)
 
@@ -404,7 +404,7 @@ class PMP(object):
         if '@' in accountName:
             justUser, apiUrlfromAccntName = accountName.split('@')
             # only comparing the domain right now
-            parsed_uri = urlparse.urlparse(apiUrlfromAccntName)
+            parsed_uri = urlparse(apiUrlfromAccntName)
             apiUrlfromAccntName = parsed_uri.netloc
             self.logger.debug("apiUrlfromAccntName: %s", apiUrlfromAccntName)
         else:
@@ -433,7 +433,7 @@ class PMP(object):
             if '@' in accnt[self.const.resourceKeys_accountName]:
                 currAccntName, currAccntUrl = \
                     accnt[self.const.resourceKeys_accountName].split('@')
-                parsed_uri = urlparse.urlparse(currAccntUrl)
+                parsed_uri = urlparse(currAccntUrl)
                 currAccntUrl = parsed_uri.netloc
                 self.logger.debug("currAccntUrl: %s", currAccntUrl)
             else:
@@ -449,7 +449,7 @@ class PMP(object):
                 details = self.getAccountDetails(currAccntId, resId)
                 server = self.getServerColumn(details)
 
-                parsed_uri = urlparse.urlparse(server)
+                parsed_uri = urlparse(server)
                 urlFromDetails = parsed_uri.netloc
                 self.logger.debug("Server from Details: %s", urlFromDetails)
 
@@ -584,7 +584,7 @@ class PMP(object):
             urlFromDetails = struct[opkey][reskey][resdesc]
             self.logger.debug("url details: %s", urlFromDetails)
 
-            parsed_uri = urlparse.urlparse(urlFromDetails)
+            parsed_uri = urlparse(urlFromDetails)
             details = parsed_uri.netloc
             self.logger.debug("urlFromDetails: %s", details)
         return details
