@@ -35,14 +35,13 @@ class ReadLayerFiles(object):
             'CREDITS', 'definitionQuery', 'maxThreshold',
             'minThreshold', 'transparency', 'contrast', 'brightness']
 
-    def createSDEConnection(self, sdeServer, sdePort):
+    def createSDEConnection(self, database_platform, instance):
         '''
-        :param sdeServer: the sde host to connect to
-        :type sdeServer: str
+        :param database_platform: Specifies the database management system platform to which the connection will be made. The following are valid options: BIGQUERY, DAMENG, DB2, ORACLE, POSTGRESQL, REDSHIFT, SAP HANA, SNOWFLAKE, SQL_SERVER, TERADATA
+        :type: str
 
-        :param sdePort: the sde port that the application server is
-                        listening on
-        :type str:
+        :param instance: The database server or instance to which the connection will be made.
+        :type: str
 
         Creates a arc sde connection file in the data directory named
         TempConnection.sde if the file already exists it will be deleted.
@@ -52,10 +51,9 @@ class ReadLayerFiles(object):
             self.logger.debug("deleting and recreating the connection file")
             os.remove(connFile)
         self.logger.debug("Creating the connection file...")
-        arcpy.CreateArcSDEConnectionFile_management(
-            self.dataDir, "TempConnection", sdeServer, sdePort, "",
-            "DATABASE_AUTH", self.user, self.passwd, "SAVE_USERNAME",
-            "SDE.DEFAULT", "SAVE_VERSION")
+        arcpy.management.CreateDatabaseConnection(
+            self.dataDir, "TempConnection", database_platform, instance,
+            "DATABASE_AUTH", self.user, self.passwd, "SAVE_USERNAME")
         self.logger.debug("Connection file successfully created...")
 
     def readLyrFile(self, srcLyrFile):
