@@ -85,6 +85,7 @@ class ReadLayerFiles(object):
         '''
         self.logger.info(u'inlayer file is: %s', srcLyrFile)
         lyrObj = arcpy.mp.LayerFile(srcLyrFile)
+        self.logger.info(u'Layer Object (lyrObj) Created: %s', lyrObj)
         lyrs = lyrObj.listLayers()
         lyrInfo = []
 
