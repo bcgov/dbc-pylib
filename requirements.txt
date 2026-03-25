@@ -1,5 +1,5 @@
 lxml==4.9.1
 pytest==4.3.0
 cx_Oracle==7.1.1
-requests[security]==2.21.0
+requests[security]==2.33.0
 py-dateutil==2.2
